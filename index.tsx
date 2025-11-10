@@ -5,6 +5,7 @@ import './styles.css';
 
 const App: React.FC = () => {
         const [showSidebar, setShowSidebar] = useState(true);
+        const [isMobile, setIsMobile] = useState(false);
         const [mode, setMode] = useState<'landing' | 'practice' | 'exam'>('landing');
     const [examSessionIds, setExamSessionIds] = useState<number[] | null>(null);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>(() => new Array(questions.length).fill(null));
@@ -67,7 +68,9 @@ const App: React.FC = () => {
         // on mount, hide the sidebar automatically for narrow screens
         useEffect(() => {
             const update = () => {
-                setShowSidebar(window.innerWidth > 900);
+                const mobile = window.innerWidth <= 900;
+                setIsMobile(mobile);
+                setShowSidebar(!mobile);
             };
             update();
             window.addEventListener('resize', update);
@@ -160,18 +163,30 @@ const App: React.FC = () => {
                 <div className="exam-banner fixed-banner">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ fontWeight: 700 }}>{mode === 'exam' ? `Exam — ${available.length} questions` : 'Practice'}</div>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        {mode !== 'exam' && (
-                                            <button className="csv-btn" onClick={() => { startExam(); setShowSidebar(true); }}>Start 50-Question Exam</button>
-                                        )}
-                                        <button className="csv-btn" onClick={() => { clearExam(); setMode('landing'); setShowSidebar(false); }}>Back to Home</button>
-                                        <button className="csv-btn" onClick={() => setShowSidebar(s => !s)}>{showSidebar ? 'Hide' : 'Show'} Sidebar</button>
-                                    </div>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            {/* hamburger shown on mobile */}
+                                            <button
+                                                className="csv-btn"
+                                                style={{ display: isMobile ? 'inline-flex' : 'none', padding: '8px 10px' }}
+                                                aria-label="Open navigation"
+                                                onClick={() => setShowSidebar(true)}
+                                            >☰</button>
+                                            {mode !== 'exam' && (
+                                                <button className="csv-btn" onClick={() => { startExam(); setShowSidebar(window.innerWidth > 900); }}>Start 50-Question Exam</button>
+                                            )}
+                                            <button className="csv-btn" onClick={() => { clearExam(); setMode('landing'); setShowSidebar(false); }}>Back to Home</button>
+                                            {/* desktop toggle (hidden on mobile) */}
+                                            {!isMobile && (
+                                                <button className="csv-btn" onClick={() => setShowSidebar(s => !s)}>{showSidebar ? 'Hide Sidebar' : 'Show Sidebar'}</button>
+                                            )}
+                                        </div>
                     </div>
                 </div>
 
+                {/* Sidebar: on mobile it's an overlay (controlled with .open) and on desktop it's fixed */}
+                <div className={`sidebar-wrapper`}>
                 {showSidebar && (
-                    <aside className="sidebar fixed-sidebar">
+                    <aside className={`sidebar fixed-sidebar ${isMobile ? 'open' : ''}`}>
                         <h3 style={{ marginTop: 0 }}>Navigator</h3>
                         <div className="navigator-grid">
                             {available.map((q, i) => (
@@ -191,6 +206,12 @@ const App: React.FC = () => {
                             <button className="submit-all-btn" onClick={exportCSV}>Export CSV</button>
                         </div>
                     </aside>
+                )}
+                </div>
+
+                {/* backdrop for mobile sidebar overlay */}
+                {isMobile && (
+                    <div className={`sidebar-backdrop ${showSidebar ? 'open' : ''}`} onClick={() => setShowSidebar(false)} />
                 )}
 
                 <main className="main-area" style={{ marginLeft: showSidebar ? 'calc(var(--sidebar-width) + 32px)' : 0, marginTop: 0 }}>

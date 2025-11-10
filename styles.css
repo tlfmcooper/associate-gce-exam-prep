@@ -150,8 +150,25 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   .exam-banner .controls{justify-content:center}
   .app-layout{padding-top:88px}
   /* small screens: make sidebar flow into document and remove fixed positioning */
-  /* collapse sidebar by default on small screens */
-  .sidebar{display:none}
+  /* sidebar becomes an overlay on mobile; hidden by default */
+  .sidebar{
+    display:block; /* rendered but off-canvas until opened */
+    position:fixed;
+    top:var(--banner-height);
+    left:0;
+    bottom:0;
+    width:min(86%,320px);
+    transform:translateX(-110%);
+    transition:transform .22s ease;
+    z-index:1200;
+    box-shadow:0 8px 30px rgba(2,6,23,0.3);
+    margin:12px;
+    border-radius:10px;
+    overflow:auto;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:1100;opacity:0;pointer-events:none;transition:opacity .18s}
+  .sidebar-backdrop.open{opacity:1;pointer-events:auto}
   .main-area{margin-left:0 !important;padding:12px}
   /* stack banner content vertically on narrow screens */
   .exam-banner > div{flex-direction:column;align-items:flex-start;gap:8px}
@@ -186,4 +203,11 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
 @media (max-width:900px){
   .hero-title{font-size:28px}
   .hero{padding:28px 12px}
+}
+
+/* mobile-specific option sizing for better tap targets */
+@media (max-width:900px){
+  .option{padding:14px 14px;border-radius:10px;font-size:1rem}
+  .nav-item{height:36px;font-size:0.9rem}
+  .hero-title{font-weight:700}
 }
