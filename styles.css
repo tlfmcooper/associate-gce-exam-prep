@@ -4,11 +4,26 @@
   --green:#34A853;
   --muted:#5f6368;
   --light:#f8f9fa;
+  --sidebar-width:220px;
+  --banner-height:72px;
 }
 body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(180deg,#0b3b94 0%, #1f4aa6 40%, #2b59c1 100%);min-height:100vh}
 .app-layout{display:flex;gap:20px;box-sizing:border-box;background:transparent}
 .app-layout{display:flex;box-sizing:border-box;background:transparent;min-height:100vh;}
-.sidebar{width:220px;background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:12px;height:calc(100vh - 40px);overflow-y:auto}
+.sidebar{
+  box-sizing:border-box;
+  width:var(--sidebar-width);
+  background:#fff;
+  border:1px solid #e6e6e6;
+  border-radius:8px;
+  padding:12px;
+  overflow-y:auto;
+  /* fixed under the header so it remains visible while scrolling */
+  position:fixed;
+  top:var(--banner-height);
+  left:16px;
+  height:calc(100vh - var(--banner-height) - 32px);
+}
 .sidebar h3{margin:0}
 .small-progress-track{width:100%;height:6px;background:#e9ecef;border-radius:4px;overflow:hidden}
 .small-progress-fill{height:100%;background:var(--blue);transition:width .3s ease}
@@ -19,7 +34,7 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
 .nav-item.answered{background:#e8f0fe;border-color:var(--blue)}
 .nav-item.flagged{outline:3px solid orange}
 .submit-all-btn{width:100%;padding:10px 12px;background:#d93025;color:#fff;border:none;border-radius:6px;cursor:pointer}
-.main-area{flex:1}
+.main-area{flex:1;transition:margin-left .18s ease}
 .header{background:var(--blue);color:#fff;padding:20px;text-align:center;border-radius:6px}
 .title{margin:0;font-size:1.5em}
 .filter-row{display:flex;gap:15px;padding:15px 30px;background:#f8f9fa;border-bottom:1px solid #dadce0}
@@ -72,10 +87,12 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   align-items:center;
   justify-content:space-between;
 }
+.exam-banner > div{width:100%;display:flex;justify-content:space-between;align-items:center}
 .fixed-banner{position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 .exam-banner .left{font-weight:700}
-.exam-banner .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.exam-banner .controls .csv-btn{background:rgba(255,255,255,0.12);padding:8px 10px;border-radius:8px;white-space:nowrap}
+.exam-banner .controls{display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
+.exam-banner .controls .csv-btn{background:rgba(255,255,255,0.12);padding:6px 12px;border-radius:10px;white-space:nowrap;border:none;color:#fff;font-weight:600}
+.exam-banner .controls .csv-btn:hover{opacity:0.95}
 
 @media (max-width:700px){
   .exam-banner{padding:12px;font-size:14px}
@@ -108,6 +125,9 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   .exam-banner{padding:10px 12px}
   .exam-banner .controls{justify-content:center}
   .app-layout{padding-top:88px}
+  /* small screens: make sidebar flow into document and remove fixed positioning */
+  .sidebar{position:static;width:100%;height:auto;margin:12px 0}
+  .main-area{margin-left:0 !important}
 }
 /* Numeric entry overlay shown while typing digits */
 .numeric-overlay{position:fixed;right:28px;top:120px;background:rgba(0,0,0,0.7);color:#fff;padding:10px 14px;border-radius:8px;font-weight:700;font-size:1.1rem;z-index:1200}

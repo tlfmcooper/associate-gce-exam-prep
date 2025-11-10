@@ -178,7 +178,7 @@ const App: React.FC = () => {
                     </aside>
                 )}
 
-                <main className="main-area" style={{ marginLeft: showSidebar ? 240 : 0, marginTop: 0 }}>
+                <main className="main-area" style={{ marginLeft: showSidebar ? 'calc(var(--sidebar-width) + 32px)' : 0, marginTop: 0 }}>
                     <div style={{ padding: 20 }}>
                         {current ? (
                             <div>
