@@ -149,24 +149,29 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   .exam-banner{padding:10px 12px}
   .exam-banner .controls{justify-content:center}
   .app-layout{padding-top:88px}
-  /* small screens: make sidebar flow into document and remove fixed positioning */
-  /* sidebar becomes an overlay on mobile; hidden by default */
+  /* small screens: show a centered modal dialog instead of a full-page panel */
   .sidebar{
-    display:block; /* rendered but off-canvas until opened */
+    display:block; /* rendered but visually hidden until opened */
     position:fixed;
-    top:var(--banner-height);
-    left:0;
-    bottom:0;
-    width:min(86%,320px);
-    transform:translateX(-110%);
-    transition:transform .22s ease;
+    /* sit below the banner with a small gap */
+    top:calc(var(--banner-height) + 12px);
+    left:50%;
+    /* center horizontally and slightly scale when closed for a subtle animation */
+    transform:translateX(-50%) scale(0.98);
+    width:min(92%, 360px);
+    max-height:calc(80vh - var(--banner-height));
+    transition:transform .22s ease, opacity .18s ease;
     z-index:1200;
-    box-shadow:0 8px 30px rgba(2,6,23,0.3);
-    margin:12px;
-    border-radius:10px;
+    box-shadow:0 12px 40px rgba(2,6,23,0.35);
+    border-radius:12px;
     overflow:auto;
+    /* start hidden to allow fade/scale in */
+    opacity:0;
+    pointer-events:none;
+    padding:12px;
   }
-  .sidebar.open{transform:translateX(0)}
+  /* open state - center, fully visible and interactive */
+  .sidebar.open{transform:translateX(-50%) scale(1);opacity:1;pointer-events:auto}
   .sidebar-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:1100;opacity:0;pointer-events:none;transition:opacity .18s}
   .sidebar-backdrop.open{opacity:1;pointer-events:auto}
   .main-area{margin-left:0 !important;padding:12px}

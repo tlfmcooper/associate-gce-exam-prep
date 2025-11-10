@@ -164,13 +164,7 @@ const App: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ fontWeight: 700 }}>{mode === 'exam' ? `Exam — ${available.length} questions` : 'Practice'}</div>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {/* hamburger shown on mobile */}
-                                            <button
-                                                className="csv-btn"
-                                                style={{ display: isMobile ? 'inline-flex' : 'none', padding: '8px 10px' }}
-                                                aria-label="Open navigation"
-                                                onClick={() => setShowSidebar(true)}
-                                            >☰</button>
+                                            {/* navigator is hidden on mobile — no hamburger */}
                                             {mode !== 'exam' && (
                                                 <button className="csv-btn" onClick={() => { startExam(); setShowSidebar(window.innerWidth > 900); }}>Start 50-Question Exam</button>
                                             )}
@@ -185,8 +179,9 @@ const App: React.FC = () => {
 
                 {/* Sidebar: on mobile it's an overlay (controlled with .open) and on desktop it's fixed */}
                 <div className={`sidebar-wrapper`}>
-                {showSidebar && (
-                    <aside className={`sidebar fixed-sidebar ${isMobile ? 'open' : ''}`}>
+                {/* render sidebar only on non-mobile (desktop/tablet) */}
+                {showSidebar && !isMobile && (
+                    <aside className={`sidebar fixed-sidebar`}>
                         <h3 style={{ marginTop: 0 }}>Navigator</h3>
                         <div className="navigator-grid">
                             {available.map((q, i) => (
@@ -209,12 +204,9 @@ const App: React.FC = () => {
                 )}
                 </div>
 
-                {/* backdrop for mobile sidebar overlay */}
-                {isMobile && (
-                    <div className={`sidebar-backdrop ${showSidebar ? 'open' : ''}`} onClick={() => setShowSidebar(false)} />
-                )}
+                {/* backdrop removed for mobile since navigator is not shown on small screens */}
 
-                <main className="main-area" style={{ marginLeft: showSidebar ? 'calc(var(--sidebar-width) + 32px)' : 0, marginTop: 0 }}>
+                <main className="main-area" style={{ marginLeft: (!isMobile && showSidebar) ? 'calc(var(--sidebar-width) + 32px)' : 0, marginTop: 0 }}>
                     <div style={{ padding: 20 }}>
                         {current ? (
                             <div>
