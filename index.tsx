@@ -6,6 +6,7 @@ import './styles.css';
 const App: React.FC = () => {
         const [showSidebar, setShowSidebar] = useState(true);
         const [isMobile, setIsMobile] = useState(false);
+        const [showMobileNav, setShowMobileNav] = useState(false);
         const [mode, setMode] = useState<'landing' | 'practice' | 'exam'>('landing');
     const [examSessionIds, setExamSessionIds] = useState<number[] | null>(null);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>(() => new Array(questions.length).fill(null));
@@ -204,7 +205,53 @@ const App: React.FC = () => {
                 )}
                 </div>
 
-                {/* backdrop removed for mobile since navigator is not shown on small screens */}
+                {/* Mobile bottom-sheet navigator */}
+                {isMobile && mode !== 'landing' && (
+                    <>
+                        <button
+                            className="mobile-nav-fab"
+                            onClick={() => setShowMobileNav(true)}
+                            aria-label="Open navigator"
+                        >
+                            ☰
+                        </button>
+
+                        {showMobileNav && (
+                            <div className="mobile-navigator-sheet">
+                                <div className="sheet-panel">
+                                    <div className="sheet-header">
+                                        <strong>Navigator</strong>
+                                        <button
+                                            className="sheet-close"
+                                            onClick={() => setShowMobileNav(false)}
+                                            aria-label="Close"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    <div className="nav-grid">
+                                        {available.map((q, i) => (
+                                            <button
+                                                key={q.id}
+                                                className={`nav-item ${i === currentIndex ? 'current' : ''} ${userAnswers[q.id] !== null ? 'answered' : ''} ${flagged[q.id] ? 'flagged' : ''}`}
+                                                onClick={() => { setCurrentIndex(i); setShowMobileNav(false); }}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="sheet-footer">
+                                        <button onClick={() => { exportCSV(); setShowMobileNav(false); }}>
+                                            Export CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 <main className="main-area" style={{ marginLeft: (!isMobile && showSidebar) ? 'calc(var(--sidebar-width) + 32px)' : 0, marginTop: 0 }}>
                     <div style={{ padding: 20 }}>

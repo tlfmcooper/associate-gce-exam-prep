@@ -216,3 +216,109 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   .nav-item{height:36px;font-size:0.9rem}
   .hero-title{font-weight:700}
 }
+
+/* Animation for mobile bottom-sheet */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Mobile in-page navigator - bottom sheet */
+.mobile-navigator-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1250;
+  pointer-events: none;
+}
+
+.mobile-navigator-sheet .sheet-panel {
+  width: 100%;
+  height: 240px;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 200ms ease-out;
+  pointer-events: auto;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e6e6e6;
+  background: #fafafa;
+}
+
+.sheet-header strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sheet-close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #666;
+}
+
+.nav-grid {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sheet-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e6e6e6;
+  background: #fafafa;
+}
+
+.sheet-footer button {
+  width: 100%;
+  background: #d93025;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Floating button to open navigator on mobile */
+.mobile-nav-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #4285f4;
+  color: #fff;
+  border: none;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hide mobile navigator on desktop */
+@media (min-width: 901px) {
+  .mobile-navigator-sheet,
+  .mobile-nav-fab {
+    display: none;
+  }
+}
