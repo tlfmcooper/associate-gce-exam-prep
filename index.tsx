@@ -3,11 +3,23 @@ import { createRoot } from 'react-dom/client';
 import { questions, Question } from './questions';
 import './styles.css';
 
+interface ExamHistoryEntry {
+    id: string;
+    date: number;
+    score: number;
+    total: number;
+    percentage: number;
+    timeSpent: number; // in seconds
+    questionIds: number[];
+    userAnswers: (number | null)[];
+    shuffledOptions: { [key: number]: number[] };
+}
+
 const App: React.FC = () => {
         const [showSidebar, setShowSidebar] = useState(true);
         const [isMobile, setIsMobile] = useState(false);
         const [showMobileNav, setShowMobileNav] = useState(false);
-        const [mode, setMode] = useState<'landing' | 'practice' | 'exam' | 'results'>('landing');
+        const [mode, setMode] = useState<'landing' | 'practice' | 'exam' | 'results' | 'history'>('landing');
     const [examSessionIds, setExamSessionIds] = useState<number[] | null>(null);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>(() => new Array(questions.length).fill(null));
     const [flagged, setFlagged] = useState<boolean[]>(() => new Array(questions.length).fill(false));
@@ -18,6 +30,9 @@ const App: React.FC = () => {
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
     const [showTimeWarning, setShowTimeWarning] = useState(false);
     const [examStartTime, setExamStartTime] = useState<number | null>(null);
+    // Exam history
+    const [examHistory, setExamHistory] = useState<ExamHistoryEntry[]>([]);
+    const [reviewingExam, setReviewingExam] = useState<ExamHistoryEntry | null>(null);
 
     const available = useMemo(() => {
         if (examSessionIds) return examSessionIds.map(id => questions.find(q => q.id === id)).filter(Boolean) as Question[];
@@ -113,6 +128,31 @@ const App: React.FC = () => {
 
         if (!confirmed) return;
 
+        // Calculate score
+        const correctCount = available.filter(q => userAnswers[q.id] === q.correct).length;
+        const percentage = Math.round((correctCount / available.length) * 100);
+        
+        // Calculate time spent
+        const timeSpent = examStartTime ? Math.floor((Date.now() - examStartTime) / 1000) : 0;
+        
+        // Create exam history entry
+        const examEntry: ExamHistoryEntry = {
+            id: Date.now().toString(),
+            date: Date.now(),
+            score: correctCount,
+            total: available.length,
+            percentage,
+            timeSpent,
+            questionIds: examSessionIds || [],
+            userAnswers: [...userAnswers],
+            shuffledOptions: { ...shuffledOptions }
+        };
+        
+        // Save to history (keep last 20)
+        const updatedHistory = [examEntry, ...examHistory].slice(0, 20);
+        setExamHistory(updatedHistory);
+        localStorage.setItem('examHistory', JSON.stringify(updatedHistory));
+
         // Clear timer and exam state
         setTimeRemaining(null);
         localStorage.removeItem('examStartTime');
@@ -180,6 +220,19 @@ const App: React.FC = () => {
 
             return () => clearInterval(interval);
         }, [mode, timeRemaining, showTimeWarning]);
+
+        // Load exam history from localStorage on mount
+        useEffect(() => {
+            const savedHistory = localStorage.getItem('examHistory');
+            if (savedHistory) {
+                try {
+                    const history = JSON.parse(savedHistory) as ExamHistoryEntry[];
+                    setExamHistory(history);
+                } catch (e) {
+                    console.error('Failed to load exam history', e);
+                }
+            }
+        }, []);
 
         // Restore exam state from localStorage on mount
         useEffect(() => {
@@ -286,12 +339,170 @@ const App: React.FC = () => {
                                     <h2 style={{ color: '#fff', marginTop: 0, marginBottom: 6 }}>Start New Exam</h2>
                                     <p style={{ color: 'rgba(255,255,255,0.9)', marginTop: 0 }}>Full-length practice exam simulating the real GCE certification test. All questions include explanations.</p>
 
-                                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 18 }}>
+                                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
                                         <button onClick={() => { startExam(); setShowSidebar(true); }} style={{ background: '#1a73e8', color: '#fff', border: 'none', padding: '12px 22px', borderRadius: 8, fontSize: 16 }}>Start New Exam →</button>
                                         <button onClick={() => { startPractice(); }} style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.16)', padding: '10px 18px', borderRadius: 8, fontSize: 16 }}>Practice</button>
+                                        <button onClick={() => setMode('history')} style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.16)', padding: '10px 18px', borderRadius: 8, fontSize: 16 }}>📊 Exam History ({examHistory.length})</button>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Exam History page
+            if (mode === 'history') {
+                return (
+                    <div className="history-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
+                        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                            <div style={{ 
+                                background: 'rgba(51,65,85,0.95)', 
+                                borderRadius: 16, 
+                                padding: 32, 
+                                marginBottom: 32,
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                    <h1 style={{ margin: 0, fontSize: 32, color: '#f9fafb' }}>
+                                        📊 Exam History
+                                    </h1>
+                                    <button 
+                                        onClick={() => setMode('landing')}
+                                        className="nav-btn"
+                                    >
+                                        Back to Home
+                                    </button>
+                                </div>
+                                <p style={{ color: '#9ca3af', margin: 0 }}>
+                                    Review your past {examHistory.length} exam attempt{examHistory.length !== 1 ? 's' : ''} (showing last 20)
+                                </p>
+                            </div>
+
+                            {examHistory.length === 0 ? (
+                                <div style={{ 
+                                    background: 'rgba(51,65,85,0.95)', 
+                                    borderRadius: 16, 
+                                    padding: 64, 
+                                    textAlign: 'center',
+                                    backdropFilter: 'blur(12px)',
+                                    border: '1px solid rgba(255,255,255,0.1)'
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+                                    <h2 style={{ color: '#f9fafb', marginBottom: 8 }}>No Exam History Yet</h2>
+                                    <p style={{ color: '#9ca3af', marginBottom: 24 }}>Complete an exam to see your results here</p>
+                                    <button 
+                                        onClick={() => { startExam(); setShowSidebar(true); }}
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Start Your First Exam
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gap: 16 }}>
+                                    {examHistory.map((exam, idx) => {
+                                        const passed = exam.percentage >= 70;
+                                        const date = new Date(exam.date);
+                                        const timeSpentFormatted = formatTime(exam.timeSpent);
+                                        
+                                        return (
+                                            <div 
+                                                key={exam.id}
+                                                style={{ 
+                                                    background: 'rgba(51,65,85,0.95)',
+                                                    borderRadius: 12,
+                                                    padding: 24,
+                                                    backdropFilter: 'blur(12px)',
+                                                    border: `2px solid ${passed ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
+                                                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                                    cursor: 'pointer',
+                                                    transition: 'transform 0.2s',
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                                onClick={() => {
+                                                    // Load this exam for review
+                                                    setReviewingExam(exam);
+                                                    setExamSessionIds(exam.questionIds);
+                                                    setUserAnswers(exam.userAnswers);
+                                                    setShuffledOptions(exam.shuffledOptions);
+                                                    setCurrentIndex(0);
+                                                    setMode('results');
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                                            <div style={{ 
+                                                                fontSize: 32, 
+                                                                fontWeight: 800,
+                                                                color: passed ? '#34d399' : '#f87171'
+                                                            }}>
+                                                                {exam.percentage}%
+                                                            </div>
+                                                            <div style={{ 
+                                                                padding: '4px 12px',
+                                                                borderRadius: 6,
+                                                                fontSize: 14,
+                                                                fontWeight: 600,
+                                                                background: passed ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)',
+                                                                color: passed ? '#34d399' : '#f87171'
+                                                            }}>
+                                                                {passed ? 'PASSED' : 'FAILED'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ color: '#9ca3af', fontSize: 14, marginBottom: 4 }}>
+                                                            Score: {exam.score}/{exam.total} questions correct
+                                                        </div>
+                                                        <div style={{ color: '#9ca3af', fontSize: 14, marginBottom: 4 }}>
+                                                            Time: {timeSpentFormatted}
+                                                        </div>
+                                                        <div style={{ color: '#9ca3af', fontSize: 14 }}>
+                                                            Date: {date.toLocaleDateString()} at {date.toLocaleTimeString()}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Load this exam for review
+                                                                setReviewingExam(exam);
+                                                                setExamSessionIds(exam.questionIds);
+                                                                setUserAnswers(exam.userAnswers);
+                                                                setShuffledOptions(exam.shuffledOptions);
+                                                                setCurrentIndex(0);
+                                                                setMode('results');
+                                                            }}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                padding: '10px 20px',
+                                                                borderRadius: 8,
+                                                                fontSize: 14,
+                                                                fontWeight: 600,
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Review →
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
@@ -346,9 +557,26 @@ const App: React.FC = () => {
                                 }}>
                                     You answered {correctCount} out of {totalCount} questions correctly
                                 </div>
-                                <div style={{ marginTop: 32, textAlign: 'center' }}>
+                                <div style={{ marginTop: 32, textAlign: 'center', display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                    {reviewingExam && (
+                                        <button 
+                                            onClick={() => { setReviewingExam(null); setMode('history'); }}
+                                            style={{
+                                                background: 'transparent',
+                                                color: '#60a5fa',
+                                                border: '2px solid rgba(96,165,250,0.5)',
+                                                padding: '14px 32px',
+                                                borderRadius: 8,
+                                                fontSize: 16,
+                                                fontWeight: 600,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ← Back to History
+                                        </button>
+                                    )}
                                     <button 
-                                        onClick={() => { clearExam(); setMode('landing'); }}
+                                        onClick={() => { clearExam(); setReviewingExam(null); setMode('landing'); }}
                                         style={{
                                             background: 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))',
                                             color: '#fff',
