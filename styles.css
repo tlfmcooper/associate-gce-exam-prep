@@ -1,24 +1,26 @@
-/* App styles - Modern dark theme inspired by reference design */
+/* App styles - Bright modern dark theme */
 :root{
-  --blue:#3b82f6;
-  --blue-dark:#1e40af;
-  --green:#10b981;
-  --red:#ef4444;
-  --muted:#9ca3af;
-  --light:#f3f4f6;
-  --dark-bg:#111827;
-  --dark-surface:#1f2937;
+  --blue:#60a5fa;
+  --blue-bright:#93c5fd;
+  --blue-dark:#3b82f6;
+  --green:#34d399;
+  --red:#f87171;
+  --yellow:#fbbf24;
+  --muted:#d1d5db;
+  --light:#f9fafb;
+  --dark-bg:#1e293b;
+  --dark-surface:#334155;
   --sidebar-width:280px;
   --banner-height:64px;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;background:linear-gradient(to bottom right,#111827,#1e3a8a,#111827);min-height:100vh;font-size:15px;color:#f3f4f6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;background:linear-gradient(to bottom right,#1e293b,#1e40af,#1e293b);min-height:100vh;font-size:15px;color:#f9fafb}
 .app-layout{display:flex;gap:20px;box-sizing:border-box;background:transparent}
 .app-layout{display:flex;box-sizing:border-box;background:transparent;min-height:100vh;}
 .sidebar{
   box-sizing:border-box;
   width:var(--sidebar-width);
-  background:rgba(31,41,55,0.95);
-  border:1px solid rgba(75,85,99,0.3);
+  background:rgba(51,65,85,0.95);
+  border:1px solid rgba(100,116,139,0.4);
   border-radius:12px;
   padding:16px;
   overflow-y:auto;
@@ -30,7 +32,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
   backdrop-filter:blur(12px);
   box-shadow:0 10px 40px rgba(0,0,0,0.5);
 }
-.sidebar h3{margin:0;color:#f3f4f6;font-size:18px;font-weight:700;margin-bottom:16px}
+.sidebar h3{margin:0;color:#f9fafb;font-size:18px;font-weight:700;margin-bottom:16px}
 .small-progress-track{width:100%;height:6px;background:#e9ecef;border-radius:4px;overflow:hidden}
 .small-progress-fill{height:100%;background:var(--blue);transition:width .3s ease}
 .timer-box{margin-top:12px;padding:10px;border-radius:6px;background:var(--light);text-align:center}
@@ -46,26 +48,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
 .nav-item{
   width:100%;
   height:40px;
-  border-radius:8px;
-  border:1px solid rgba(75,85,99,0.4);
-  background:rgba(55,65,81,0.5);
+  border-radius:10px;
+  border:2px solid rgba(100,116,139,0.5);
+  background:rgba(71,85,105,0.6);
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:600;
-  color:#d1d5db;
+  font-weight:700;
+  color:#e2e8f0;
   font-size:0.95rem;
   transition:all 0.15s ease;
 }
-.nav-item:hover{background:rgba(75,85,99,0.6);border-color:rgba(96,165,250,0.4)}
-.nav-item.answered{background:rgba(59,130,246,0.2);border-color:rgba(59,130,246,0.5);color:#60a5fa}
-.nav-item.flagged{box-shadow:0 0 0 2px rgba(251,191,36,0.3);border-color:rgba(251,191,36,0.5)}
-.nav-item.current{background:rgba(59,130,246,0.9);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(59,130,246,0.4)}
+.nav-item:hover{background:rgba(100,116,139,0.7);border-color:rgba(147,197,253,0.6)}
+.nav-item.answered{background:rgba(96,165,250,0.25);border-color:rgba(96,165,250,0.8);color:#bfdbfe;font-weight:700}
+.nav-item.flagged{box-shadow:0 0 0 3px rgba(251,191,36,0.4);border-color:rgba(251,191,36,0.9)}
+.nav-item.current{background:linear-gradient(135deg,rgba(96,165,250,0.95),rgba(147,197,253,0.95));color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(96,165,250,0.5);font-weight:800}
 
 /* make the navigator horizontally scrollable only when necessary */
 .sidebar{overflow:auto}
-.submit-all-btn{width:100%;padding:12px 16px;background:rgba(239,68,68,0.9);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.15s;box-shadow:0 4px 12px rgba(239,68,68,0.3)}
+.submit-all-btn{width:100%;padding:10px 12px;background:linear-gradient(135deg,rgba(239,68,68,0.9),rgba(248,113,113,0.9));color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;box-shadow:0 4px 12px rgba(239,68,68,0.3);transition:all 0.15s}
+.submit-all-btn:hover{background:linear-gradient(135deg,rgba(239,68,68,1),rgba(248,113,113,1));box-shadow:0 6px 16px rgba(239,68,68,0.4)}
 .submit-all-btn:hover{background:rgba(239,68,68,1);box-shadow:0 6px 16px rgba(239,68,68,0.4)}
 .main-area{flex:1;transition:margin-left .18s ease}
 .header{background:var(--blue);color:#fff;padding:20px;text-align:center;border-radius:6px}
@@ -78,23 +81,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
 .question-header{display:flex;justify-content:space-between;color:#9ca3af;margin-bottom:20px;font-size:0.95rem;font-weight:600}
 .question-text{font-size:1.05rem;line-height:1.6;color:#f3f4f6;margin-bottom:20px;font-weight:500}
 .options{display:flex;flex-direction:column;gap:15px}
-.option{padding:14px 16px;border:2px solid rgba(75,85,99,0.4);border-radius:10px;cursor:pointer;transition:all 0.15s ease;color:#d1d5db;background:rgba(55,65,81,0.4);font-size:0.98rem;line-height:1.5}
-.option:hover{background:rgba(75,85,99,0.5);border-color:rgba(96,165,250,0.4)}
-.option.selected{border-color:rgba(59,130,246,0.8);background:rgba(59,130,246,0.15);color:#93c5fd;font-weight:500}
-.option.correct{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.8);color:#6ee7b7;font-weight:500}
-.option.incorrect{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.8);color:#fca5a5;font-weight:500}
-.explanation{margin-top:24px;padding:20px;border-top:2px solid rgba(75,85,99,0.3);background:rgba(55,65,81,0.3);border-radius:8px;margin-top:20px}
-.explanation h3{margin-top:0;color:#93c5fd;font-size:1.1rem;font-weight:700;margin-bottom:12px}
-.explanation p{color:#d1d5db;line-height:1.6}
+.option{padding:14px 16px;border:2px solid rgba(100,116,139,0.5);border-radius:10px;cursor:pointer;transition:all 0.15s ease;color:#e2e8f0;background:rgba(71,85,105,0.5);font-size:0.98rem;line-height:1.5}
+.option:hover{background:rgba(100,116,139,0.6);border-color:rgba(147,197,253,0.5)}
+.option.selected{border-color:rgba(96,165,250,0.9);background:rgba(96,165,250,0.2);color:#bfdbfe;font-weight:600}
+.option.correct{background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.9);color:#86efac;font-weight:600}
+.option.incorrect{background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.9);color:#fca5a5;font-weight:600}
+.explanation{margin-top:24px;padding:20px;border-top:2px solid rgba(100,116,139,0.4);background:rgba(71,85,105,0.4);border-radius:8px;margin-top:20px}
+.explanation h3{margin-top:0;color:#bfdbfe;font-size:1.1rem;font-weight:700;margin-bottom:12px}
+.explanation p{color:#e2e8f0;line-height:1.6}
 .navigation{display:flex;justify-content:space-between;align-items:center;margin-top:30px;border-top:1px solid #dadce0;padding-top:20px}
-.nav-btn{padding:10px 18px;font-size:0.95rem;cursor:pointer;border:2px solid rgba(75,85,99,0.5);border-radius:8px;background:rgba(55,65,81,0.6);color:#d1d5db;font-weight:600;transition:all 0.15s}
-.nav-btn:hover{background:rgba(75,85,99,0.7);border-color:rgba(96,165,250,0.5)}
-.submit-btn{padding:10px 24px;font-size:0.95rem;border:none;border-radius:8px;background:rgba(59,130,246,0.9);color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s;box-shadow:0 4px 12px rgba(59,130,246,0.3)}
-.submit-btn:hover{background:rgba(59,130,246,1);box-shadow:0 6px 16px rgba(59,130,246,0.4)}
+.nav-btn{padding:10px 18px;font-size:0.95rem;cursor:pointer;border:2px solid rgba(100,116,139,0.6);border-radius:8px;background:rgba(71,85,105,0.7);color:#e2e8f0;font-weight:600;transition:all 0.15s}
+.nav-btn:hover{background:rgba(100,116,139,0.8);border-color:rgba(147,197,253,0.6)}
+.submit-btn{padding:10px 24px;font-size:0.95rem;border:none;border-radius:8px;background:linear-gradient(135deg,rgba(96,165,250,0.95),rgba(147,197,253,0.95));color:#fff;cursor:pointer;font-weight:600;transition:all 0.15s;box-shadow:0 4px 12px rgba(96,165,250,0.4)}
+.submit-btn:hover{background:linear-gradient(135deg,rgba(96,165,250,1),rgba(147,197,253,1));box-shadow:0 6px 16px rgba(96,165,250,0.5)}
 .disabled{cursor:not-allowed;opacity:.5}
-.flag-btn{padding:10px 16px;border-radius:8px;border:2px solid rgba(75,85,99,0.5);background:rgba(55,65,81,0.6);cursor:pointer;color:#d1d5db;font-weight:600;transition:all 0.15s}
-.flag-btn:hover{background:rgba(75,85,99,0.7)}
-.flag-btn.active{border-color:rgba(251,191,36,0.8);background:rgba(251,191,36,0.2);color:#fbbf24}
+/* Modern flag button design matching reference HTML */
+.flag-button{
+  padding:10px 20px;
+  border-radius:10px;
+  border:2px solid rgba(75,85,99,0.5);
+  background:rgba(55,65,81,0.6);
+  cursor:pointer;
+  color:#d1d5db;
+  font-weight:600;
+  font-size:14px;
+  transition:all 0.2s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.flag-button:hover{
+  background:rgba(75,85,99,0.7);
+  border-color:rgba(96,165,250,0.5);
+}
+.flag-button.flagged{
+  border-color:rgba(251,191,36,0.9);
+  background:linear-gradient(135deg,rgba(245,158,11,0.9),rgba(251,191,36,0.9));
+  color:#fff;
+  box-shadow:0 4px 12px rgba(251,191,36,0.4);
+  font-weight:700;
+}
+
+/* Domain badge */
+.domain-badge{
+  display:inline-block;
+  padding:8px 18px;
+  background:linear-gradient(135deg,rgba(59,130,246,0.9),rgba(96,165,250,0.9));
+  color:#fff;
+  border-radius:20px;
+  font-size:14px;
+  font-weight:700;
+  box-shadow:0 4px 12px rgba(59,130,246,0.3);
+}
 .summary-area{padding:20px;background:#fff;border-radius:8px}
 .score-box{width:160px;text-align:center;padding:12px;border-radius:8px;background:#f1f4f8;border:1px solid #e6eefc}
 .score-large{font-size:2.2em;font-weight:700}
@@ -108,7 +146,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
 .print-btn{padding:8px 12px;background:#6c757d;color:#fff;border:none;border-radius:6px;cursor:pointer}
 @media (max-width:900px){.navigator-grid{grid-template-columns:repeat(5,1fr)}}
 
-/* Exam banner (modern dark design) */
+/* Exam banner (bright modern design) */
 .exam-banner{
   /* use left/right instead of 100vw to avoid horizontal overflow when a scrollbar is present */
   position:fixed;
@@ -117,7 +155,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
   right:0;
   box-sizing:border-box;
   padding:14px 28px;
-  color:#f3f4f6;
+  color:#f9fafb;
   background:rgba(17,24,39,0.95);
   backdrop-filter:blur(12px);
   border-bottom:1px solid rgba(75,85,99,0.3);

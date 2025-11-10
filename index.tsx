@@ -257,14 +257,27 @@ const App: React.FC = () => {
                     <div style={{ padding: 20 }}>
                         {current ? (
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>Question {currentIndex + 1} / {available.length}</div>
-                                    <div>
-                                        <button onClick={toggleFlag} style={{ marginRight: 8 }}>{flagged[current.id] ? 'Unflag' : 'Flag'}</button>
-                                    </div>
+                                {/* Domain and subdomain badges */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <span className="domain-badge">{current.domain}</span>
+                                    {current.subdomain && (
+                                        <div style={{ marginTop: 8, fontSize: 14, color: '#9ca3af' }}>
+                                            {current.subdomain}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <h2 style={{ marginTop: 12 }}>{current.question}</h2>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                    <div style={{ fontSize: 14, color: '#9ca3af' }}>Question {currentIndex + 1} of {available.length}</div>
+                                    <button 
+                                        onClick={toggleFlag} 
+                                        className={`flag-button ${flagged[current.id] ? 'flagged' : ''}`}
+                                    >
+                                        🚩 {flagged[current.id] ? 'Flagged' : 'Flag'}
+                                    </button>
+                                </div>
+
+                                <h2 style={{ marginTop: 0, fontSize: 22, lineHeight: 1.5, color: '#f9fafb', fontWeight: 500 }}>{current.question}</h2>
 
                                 <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                                     {current.options.map((opt, idx) => (
