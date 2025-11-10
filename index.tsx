@@ -164,8 +164,10 @@ const App: React.FC = () => {
                             {available.map((q, i) => (
                                 <button
                                     key={q.id}
-                                    className={`nav-item ${userAnswers[q.id] !== null ? 'answered' : ''} ${flagged[q.id] ? 'flagged' : ''}`}
+                                    className={`nav-item ${userAnswers[q.id] !== null ? 'answered' : ''} ${flagged[q.id] ? 'flagged' : ''} ${i === currentIndex ? 'current' : ''}`}
                                     onClick={() => setCurrentIndex(i)}
+                                    aria-pressed={i === currentIndex}
+                                    title={`Question ${i + 1}`}
                                 >
                                     {i + 1}
                                 </button>
@@ -195,9 +197,11 @@ const App: React.FC = () => {
                                     {current.options.map((opt, idx) => (
                                         <div
                                             key={idx}
-                                            className="option"
+                                            className={`option ${userAnswers[current.id] === idx ? 'selected' : ''}`}
                                             onClick={() => selectOption(idx)}
-                                            style={{ padding: 12, border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer', background: userAnswers[current.id] === idx ? '#e8f0fe' : '#fff' }}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectOption(idx); }}
                                         >
                                             {opt}
                                         </div>
