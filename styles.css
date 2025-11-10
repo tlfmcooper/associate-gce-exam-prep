@@ -150,8 +150,12 @@ body{font-family:Roboto, Arial, sans-serif;margin:0;background:linear-gradient(1
   .exam-banner .controls{justify-content:center}
   .app-layout{padding-top:88px}
   /* small screens: make sidebar flow into document and remove fixed positioning */
-  .sidebar{position:static;width:100%;height:auto;margin:12px 0}
-  .main-area{margin-left:0 !important}
+  /* collapse sidebar by default on small screens */
+  .sidebar{display:none}
+  .main-area{margin-left:0 !important;padding:12px}
+  /* stack banner content vertically on narrow screens */
+  .exam-banner > div{flex-direction:column;align-items:flex-start;gap:8px}
+  .exam-banner .controls{width:100%;justify-content:flex-end}
 }
 /* Numeric entry overlay shown while typing digits */
 .numeric-overlay{position:fixed;right:28px;top:120px;background:rgba(0,0,0,0.7);color:#fff;padding:10px 14px;border-radius:8px;font-weight:700;font-size:1.1rem;z-index:1200}

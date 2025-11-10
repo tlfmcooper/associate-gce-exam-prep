@@ -46,6 +46,8 @@ const App: React.FC = () => {
         });
         setCurrentIndex(0);
             setMode('exam');
+            // hide sidebar on small screens for better mobile UX
+            if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
     };
 
     const clearExam = () => {
@@ -58,8 +60,19 @@ const App: React.FC = () => {
             setExamSessionIds(null);
             setCurrentIndex(0);
             setMode('practice');
-            setShowSidebar(true);
+            // show sidebar only on larger screens
+            if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
         };
+
+        // on mount, hide the sidebar automatically for narrow screens
+        useEffect(() => {
+            const update = () => {
+                setShowSidebar(window.innerWidth > 900);
+            };
+            update();
+            window.addEventListener('resize', update);
+            return () => window.removeEventListener('resize', update);
+        }, []);
 
     const selectOption = (idx: number) => {
         if (!current) return;
@@ -123,7 +136,7 @@ const App: React.FC = () => {
                             </div>
 
                             <h1 style={{ fontSize: 56, margin: '0 0 8px', fontWeight: 800, lineHeight: 1.05 }}>Google Cloud<br />Associate Engineer</h1>
-                            <p style={{ marginTop: 8, fontSize: 18, opacity: 0.95 }}>Practice Exam - 2025 Edition · 120 Questions · 120 Minutes</p>
+                            <p style={{ marginTop: 8, fontSize: 18, opacity: 0.95 }}>Practice Exam - 2025 Edition · 50 Questions</p>
 
                             <div style={{ marginTop: 36, display: 'flex', justifyContent: 'center' }}>
                                 <div style={{ width: 'min(820px, 92%)', textAlign: 'center', padding: '26px 30px', borderRadius: 14, background: 'rgba(0,0,0,0.12)' }}>
