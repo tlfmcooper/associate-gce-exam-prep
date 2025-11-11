@@ -96,6 +96,9 @@ const App: React.FC = () => {
     const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null);
     const [userAnswers, setUserAnswers] = useState<(number | null)[]>(createEmptyAnswerArray);
     const [flagged, setFlagged] = useState<boolean[]>(createEmptyFlagArray);
+    const [resultsFilter, setResultsFilter] = useState<'all' | 'correct' | 'wrong'>('all');
+    const [showSubmitWarning, setShowSubmitWarning] = useState(false);
+    const [pendingSubmitStats, setPendingSubmitStats] = useState<{ flagged: number; unanswered: number; answered: number } | null>(null);
     const [feedback, setFeedback] = useState<{ questionId: number; isCorrect: boolean; selectedOption: number | null } | null>(null);
     const [practiceSummary, setPracticeSummary] = useState<PracticeSummary | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -113,6 +116,15 @@ const App: React.FC = () => {
         if (examSessionIds) return examSessionIds.map(id => questions.find(q => q.id === id)).filter(Boolean) as Question[];
         return questions;
     }, [examSessionIds]);
+
+    const filteredQuestions = useMemo(() => {
+        if (resultsFilter === 'all') return available;
+
+        return available.filter(question => {
+            const isCorrect = userAnswers[question.id] === question.correct;
+            return resultsFilter === 'correct' ? isCorrect : !isCorrect;
+        });
+    }, [available, resultsFilter, userAnswers]);
 
     const current = available[currentIndex];
     const currentAnswer = current ? userAnswers[current.id] : null;
@@ -235,6 +247,9 @@ const App: React.FC = () => {
         setPracticeSummary(null);
         setPracticeStartTime(null);
         setFeedback(null);
+    setShowSubmitWarning(false);
+    setPendingSubmitStats(null);
+        setResultsFilter('all');
         setExamSessionIds(ids);
         setUserAnswers(createEmptyAnswerArray());
         setFlagged(createEmptyFlagArray());
@@ -270,59 +285,80 @@ const App: React.FC = () => {
         setPracticeSummary(null);
         setFeedback(null);
         setPracticeStartTime(null);
+    setShowSubmitWarning(false);
+    setPendingSubmitStats(null);
         localStorage.removeItem('examStartTime');
         localStorage.removeItem('examSessionIds');
         localStorage.removeItem('shuffledOptions');
     };
 
-    const submitExam = () => {
-        // Count answered questions
-        const answeredCount = available.filter(q => userAnswers[q.id] !== null).length;
-        
-        if (answeredCount === 0) {
-            alert('You haven\'t answered any questions yet!');
-            return;
-        }
-
-        const confirmed = window.confirm(
-            `You have answered ${answeredCount} of ${available.length} questions.\n\nAre you sure you want to submit your exam?`
-        );
-
-        if (!confirmed) return;
-
-        // Calculate score
+    const finalizeExamSubmission = () => {
+        const totalQuestions = available.length;
         const correctCount = available.filter(q => userAnswers[q.id] === q.correct).length;
-        const percentage = Math.round((correctCount / available.length) * 100);
-        
-        // Calculate time spent
+        const percentage = totalQuestions === 0 ? 0 : Math.round((correctCount / totalQuestions) * 100);
         const timeSpent = examStartTime ? Math.floor((Date.now() - examStartTime) / 1000) : 0;
-        
-        // Create exam history entry
+
         const examEntry: ExamHistoryEntry = {
             id: Date.now().toString(),
             date: Date.now(),
             score: correctCount,
-            total: available.length,
+            total: totalQuestions,
             percentage,
             timeSpent,
             questionIds: examSessionIds || [],
             userAnswers: [...userAnswers],
             shuffledOptions: { ...shuffledOptions }
         };
-        
-        // Save to history (keep last 20)
+
         const updatedHistory = [examEntry, ...examHistory].slice(0, 20);
         setExamHistory(updatedHistory);
         localStorage.setItem('examHistory', JSON.stringify(updatedHistory));
 
-        // Clear timer and exam state
         setTimeRemaining(null);
+        setExamStartTime(null);
+        setShowTimeWarning(false);
         localStorage.removeItem('examStartTime');
         localStorage.removeItem('examSessionIds');
         localStorage.removeItem('shuffledOptions');
-        
-        // Switch to results mode
+
+        setShowSubmitWarning(false);
+        setPendingSubmitStats(null);
+
         setMode('results' as any);
+    };
+
+    const submitExam = () => {
+        const answeredCount = available.filter(q => userAnswers[q.id] !== null).length;
+
+        if (answeredCount === 0) {
+            alert('You haven\'t answered any questions yet!');
+            return;
+        }
+
+        const flaggedCount = available.filter(q => flagged[q.id]).length;
+        const unansweredCount = available.length - answeredCount;
+
+        if (flaggedCount > 0) {
+            setPendingSubmitStats({ flagged: flaggedCount, unanswered: unansweredCount, answered: answeredCount });
+            setShowSubmitWarning(true);
+            return;
+        }
+
+        const confirmationMessage = unansweredCount > 0
+            ? `You have answered ${answeredCount} of ${available.length} questions (${unansweredCount} unanswered).\n\nAre you sure you want to submit your exam?`
+            : `You have answered all ${available.length} questions.\n\nAre you sure you want to submit your exam?`;
+
+        const confirmed = window.confirm(confirmationMessage);
+        if (!confirmed) return;
+
+        finalizeExamSubmission();
+    };
+
+    const reviewFlaggedQuestions = () => {
+        const firstFlaggedIndex = available.findIndex(q => flagged[q.id]);
+        if (firstFlaggedIndex >= 0) setCurrentIndex(firstFlaggedIndex);
+        setShowSubmitWarning(false);
+        setPendingSubmitStats(null);
     };
 
     const formatTime = (seconds: number): string => {
@@ -332,39 +368,45 @@ const App: React.FC = () => {
         return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-        const startPractice = () => {
-            setPracticeSummary(null);
-            setPracticeStartTime(null);
-            setFeedback(null);
-            setExamSessionIds(null);
-            setCurrentIndex(0);
-            // Show practice configuration screen
-            setMode('practiceConfig');
-        };
+    const startPractice = () => {
+        setPracticeSummary(null);
+        setPracticeStartTime(null);
+        setFeedback(null);
+        setShowSubmitWarning(false);
+        setPendingSubmitStats(null);
+        setResultsFilter('all');
+        setExamSessionIds(null);
+        setCurrentIndex(0);
+        // Show practice configuration screen
+        setMode('practiceConfig');
+    };
 
-        const startPracticeSession = (size: number) => {
-            const targetSize = Math.min(Math.max(1, size), questions.length);
-            const selectedIds = selectProportionalQuestions(targetSize);
-            if (selectedIds.length === 0) {
-                alert('Unable to start practice session – no questions available.');
-                return;
-            }
+    const startPracticeSession = (size: number) => {
+        const targetSize = Math.min(Math.max(1, size), questions.length);
+        const selectedIds = selectProportionalQuestions(targetSize);
+        if (selectedIds.length === 0) {
+            alert('Unable to start practice session – no questions available.');
+            return;
+        }
 
-            setPracticeSummary(null);
-            setExamSessionIds(selectedIds);
-            setUserAnswers(createEmptyAnswerArray());
-            setFlagged(createEmptyFlagArray());
+        setPracticeSummary(null);
+        setExamSessionIds(selectedIds);
+        setUserAnswers(createEmptyAnswerArray());
+        setFlagged(createEmptyFlagArray());
+        setResultsFilter('all');
+        setShowSubmitWarning(false);
+        setPendingSubmitStats(null);
 
-            const shuffled = shuffleAnswerOptions(selectedIds);
-            setShuffledOptions(shuffled);
-            setCurrentIndex(0);
-            setFeedback(null);
-            setPracticeStartTime(Date.now());
-            setMode('practice');
-            
-            // show sidebar only on larger screens
-            if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
-        };
+        const shuffled = shuffleAnswerOptions(selectedIds);
+        setShuffledOptions(shuffled);
+        setCurrentIndex(0);
+        setFeedback(null);
+        setPracticeStartTime(Date.now());
+        setMode('practice');
+        
+        // show sidebar only on larger screens
+        if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
+    };
 
         const finishPractice = () => {
             if (!available.length) return;
@@ -1092,8 +1134,15 @@ Do you want to finish the practice session anyway?`);
             if (mode === 'results') {
                 const correctCount = available.filter(q => userAnswers[q.id] === q.correct).length;
                 const totalCount = available.length;
+                const wrongCount = totalCount - correctCount;
                 const percentage = Math.round((correctCount / totalCount) * 100);
                 const passed = percentage >= 70; // Assuming 70% is passing
+                const filteredCount = filteredQuestions.length;
+                const filterOptions: Array<{ key: 'all' | 'correct' | 'wrong'; label: string; count: number }> = [
+                    { key: 'all', label: 'All', count: totalCount },
+                    { key: 'correct', label: 'Correct', count: correctCount },
+                    { key: 'wrong', label: 'Wrong', count: wrongCount }
+                ];
 
                 return (
                     <div className="results-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
@@ -1175,13 +1224,58 @@ Do you want to finish the practice session anyway?`);
 
                             {/* Question by Question Breakdown */}
                             <div className="results-breakdown">
-                                <h2 style={{ fontSize: 24, color: '#f9fafb', marginBottom: 24 }}>
-                                    Detailed Breakdown
-                                </h2>
-                                {available.map((q, idx) => {
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+                                    <div>
+                                        <h2 style={{ fontSize: 24, color: '#f9fafb', margin: 0 }}>
+                                            Detailed Breakdown
+                                        </h2>
+                                        {resultsFilter !== 'all' && (
+                                            <div style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>
+                                                Showing {filteredCount} of {totalCount} questions
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                        {filterOptions.map(option => {
+                                            const isActive = resultsFilter === option.key;
+                                            return (
+                                                <button
+                                                    key={option.key}
+                                                    onClick={() => setResultsFilter(option.key)}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: 999,
+                                                        padding: '10px 18px',
+                                                        fontSize: 14,
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        background: isActive ? 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))' : 'rgba(15,23,42,0.6)',
+                                                        color: isActive ? '#fff' : '#cbd5f5',
+                                                        boxShadow: isActive ? '0 10px 30px rgba(59,130,246,0.35)' : 'none',
+                                                        transition: 'transform 0.15s ease'
+                                                    }}
+                                                >
+                                                    {option.label} ({option.count})
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                {filteredQuestions.length === 0 ? (
+                                    <div style={{
+                                        background: 'rgba(15,23,42,0.7)',
+                                        border: '1px solid rgba(96,165,250,0.3)',
+                                        borderRadius: 12,
+                                        padding: 24,
+                                        color: '#cbd5f5'
+                                    }}>
+                                        No questions match this filter. Try a different filter to continue reviewing your results.
+                                    </div>
+                                ) : (
+                                filteredQuestions.map((q, filteredIdx) => {
                                     const userAnswer = userAnswers[q.id];
                                     const isCorrect = userAnswer === q.correct;
-                                    const shuffleMap = shuffledOptions[q.id] || [];
+                                    const questionNumber = available.findIndex(item => item.id === q.id) + 1;
                                     
                                     return (
                                         <div 
@@ -1205,7 +1299,12 @@ Do you want to finish the practice session anyway?`);
                                                     {isCorrect ? '✓' : '✗'}
                                                 </div>
                                                 <div style={{ fontSize: 14, color: '#9ca3af' }}>
-                                                    Question {idx + 1} of {totalCount}
+                                                    Question {questionNumber} of {totalCount}
+                                                    {resultsFilter !== 'all' && (
+                                                        <span style={{ color: '#cbd5f5' }}>
+                                                            {` • Filter ${filteredIdx + 1} of ${filteredCount}`}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1286,7 +1385,7 @@ Do you want to finish the practice session anyway?`);
                                             )}
                                         </div>
                                     );
-                                })}
+                                }))}
                             </div>
                         </div>
                     </div>
@@ -1295,6 +1394,88 @@ Do you want to finish the practice session anyway?`);
 
         return (
             <div className="app-layout">
+                {showSubmitWarning && pendingSubmitStats && (
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="submit-warning-title"
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(15,23,42,0.85)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1000,
+                            padding: '20px'
+                        }}
+                    >
+                        <div
+                            style={{
+                                background: 'rgba(15,23,42,0.95)',
+                                borderRadius: 16,
+                                padding: 32,
+                                maxWidth: 480,
+                                width: '100%',
+                                border: '1px solid rgba(96,165,250,0.3)',
+                                boxShadow: '0 30px 80px rgba(2,6,23,0.7)'
+                            }}
+                        >
+                            <h3 id="submit-warning-title" style={{ marginTop: 0, marginBottom: 12, fontSize: 22, color: '#f9fafb' }}>
+                                Review Flagged Questions?
+                            </h3>
+                            <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
+                                You have {pendingSubmitStats.flagged} flagged question{pendingSubmitStats.flagged === 1 ? '' : 's'}.
+                            </p>
+                            <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
+                                You have answered {pendingSubmitStats.answered} of {available.length} questions so far.
+                            </p>
+                            {pendingSubmitStats.unanswered > 0 && (
+                                <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
+                                    There {pendingSubmitStats.unanswered === 1 ? 'is' : 'are'} also {pendingSubmitStats.unanswered} unanswered question{pendingSubmitStats.unanswered === 1 ? '' : 's'} remaining.
+                                </p>
+                            )}
+                            <p style={{ margin: '12px 0', color: '#94a3b8', lineHeight: 1.6 }}>
+                                You can jump back to the first flagged question to review or submit now and view the full breakdown in the results screen.
+                            </p>
+                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+                                <button
+                                    onClick={reviewFlaggedQuestions}
+                                    style={{
+                                        flex: '1 1 150px',
+                                        background: 'transparent',
+                                        color: '#60a5fa',
+                                        border: '2px solid rgba(96,165,250,0.6)',
+                                        padding: '12px 18px',
+                                        borderRadius: 10,
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Review Flagged Questions
+                                </button>
+                                <button
+                                    onClick={finalizeExamSubmission}
+                                    style={{
+                                        flex: '1 1 150px',
+                                        background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(74,222,128,0.9))',
+                                        color: '#fff',
+                                        border: 'none',
+                                        padding: '12px 18px',
+                                        borderRadius: 10,
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        boxShadow: '0 15px 35px rgba(34,197,94,0.35)'
+                                    }}
+                                >
+                                    Submit Anyway
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* top banner only when not on landing */}
                 <div className="exam-banner fixed-banner">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
