@@ -3,6 +3,75 @@ import { createRoot } from 'react-dom/client';
 import { questions, Question } from './questions';
 import './styles.css';
 
+const QUESTIONS_BY_DOMAIN = questions.reduce<Record<string, Question[]>>((acc, question) => {
+    if (!acc[question.domain]) acc[question.domain] = [];
+    acc[question.domain].push(question);
+    return acc;
+}, {});
+
+const TOTAL_QUESTIONS = questions.length;
+const MAX_QUESTION_ID = questions.reduce((max, q) => Math.max(max, q.id), 0);
+
+const createEmptyAnswerArray = () => Array.from({ length: MAX_QUESTION_ID + 1 }, () => null as number | null);
+const createEmptyFlagArray = () => Array.from({ length: MAX_QUESTION_ID + 1 }, () => false);
+
+type DomainAllocation = { domain: string; count: number; total: number };
+type PracticeSummary = {
+    correct: number;
+    total: number;
+    answered: number;
+    timeSpent: number;
+    breakdown: Record<string, { correct: number; total: number; answered: number }>;
+};
+
+const calculateDomainAllocation = (requestedCount: number): DomainAllocation[] => {
+    const target = Math.min(Math.max(0, requestedCount), TOTAL_QUESTIONS);
+    const allocations = Object.entries(QUESTIONS_BY_DOMAIN).map(([domain, items]) => {
+        const raw = (items.length / TOTAL_QUESTIONS) * target;
+        const base = Math.floor(raw);
+        return {
+            domain,
+            total: items.length,
+            allocated: Math.min(base, items.length),
+            remainder: raw - base,
+        };
+    });
+
+    let allocatedTotal = allocations.reduce((sum, entry) => sum + entry.allocated, 0);
+    const targetTotal = Math.min(target, allocations.reduce((sum, entry) => sum + entry.total, 0));
+
+    if (allocatedTotal < targetTotal) {
+        const byRemainder = [...allocations].sort((a, b) => b.remainder - a.remainder);
+        let index = 0;
+        while (allocatedTotal < targetTotal && byRemainder.length > 0) {
+            const entry = byRemainder[index % byRemainder.length];
+            if (entry.allocated < entry.total) {
+                entry.allocated += 1;
+                allocatedTotal += 1;
+            }
+            index += 1;
+            if (index > byRemainder.length * 4) break;
+        }
+    }
+
+    // Ensure we don't exceed target by trimming from smallest remainder if needed
+    if (allocatedTotal > targetTotal) {
+        const byRemainderAsc = [...allocations].sort((a, b) => a.remainder - b.remainder);
+        let index = 0;
+        while (allocatedTotal > targetTotal && byRemainderAsc.length > 0) {
+            const entry = byRemainderAsc[index % byRemainderAsc.length];
+            if (entry.allocated > 0) {
+                entry.allocated -= 1;
+                allocatedTotal -= 1;
+            }
+            index += 1;
+            if (index > byRemainderAsc.length * 4) break;
+        }
+    }
+
+    return allocations.map(({ domain, allocated, total }) => ({ domain, count: allocated, total }));
+};
+
 interface ExamHistoryEntry {
     id: string;
     date: number;
@@ -19,10 +88,16 @@ const App: React.FC = () => {
         const [showSidebar, setShowSidebar] = useState(true);
         const [isMobile, setIsMobile] = useState(false);
         const [showMobileNav, setShowMobileNav] = useState(false);
-        const [mode, setMode] = useState<'landing' | 'practice' | 'exam' | 'results' | 'history'>('landing');
+        const [mode, setMode] = useState<'landing' | 'practice' | 'practiceConfig' | 'exam' | 'results' | 'history' | 'practiceResults'>('landing');
     const [examSessionIds, setExamSessionIds] = useState<number[] | null>(null);
-    const [userAnswers, setUserAnswers] = useState<(number | null)[]>(() => new Array(questions.length).fill(null));
-    const [flagged, setFlagged] = useState<boolean[]>(() => new Array(questions.length).fill(false));
+    // Practice mode states
+    const [practiceSize, setPracticeSize] = useState<number>(10);
+    const [customSize, setCustomSize] = useState<string>('');
+    const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null);
+    const [userAnswers, setUserAnswers] = useState<(number | null)[]>(createEmptyAnswerArray);
+    const [flagged, setFlagged] = useState<boolean[]>(createEmptyFlagArray);
+    const [feedback, setFeedback] = useState<{ questionId: number; isCorrect: boolean; selectedOption: number | null } | null>(null);
+    const [practiceSummary, setPracticeSummary] = useState<PracticeSummary | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     // Store shuffled options mapping: questionId -> [shuffled indices]
     const [shuffledOptions, setShuffledOptions] = useState<{ [key: number]: number[] }>({});
@@ -40,6 +115,46 @@ const App: React.FC = () => {
     }, [examSessionIds]);
 
     const current = available[currentIndex];
+    const currentAnswer = current ? userAnswers[current.id] : null;
+    const answeredCount = available.reduce((count, q) => count + (userAnswers[q.id] !== null ? 1 : 0), 0);
+
+    // Function to select N questions proportionally by domain
+    const selectPracticeQuestions = (count: number): number[] => {
+        // Group questions by domain
+        const byDomain: { [domain: string]: number[] } = {};
+        questions.forEach(q => {
+            if (!byDomain[q.domain]) byDomain[q.domain] = [];
+            byDomain[q.domain].push(q.id);
+        });
+
+        const domains = Object.keys(byDomain);
+        const totalQuestions = questions.length;
+        const selected: number[] = [];
+
+        // Calculate questions per domain proportionally
+        const questionsPerDomain = domains.map(domain => ({
+            domain,
+            count: Math.round((byDomain[domain].length / totalQuestions) * count),
+            available: [...byDomain[domain]]
+        }));
+
+        // Adjust if rounding caused mismatch
+        let currentTotal = questionsPerDomain.reduce((sum, d) => sum + d.count, 0);
+        if (currentTotal < count) {
+            questionsPerDomain[0].count += (count - currentTotal);
+        } else if (currentTotal > count) {
+            questionsPerDomain[questionsPerDomain.length - 1].count -= (currentTotal - count);
+        }
+
+        // Select random questions from each domain
+        questionsPerDomain.forEach(({ available, count }) => {
+            const shuffled = [...available].sort(() => Math.random() - 0.5);
+            selected.push(...shuffled.slice(0, Math.min(count, shuffled.length)));
+        });
+
+        // Shuffle final selection
+        return selected.sort(() => Math.random() - 0.5);
+    };
 
     useEffect(() => {
         if (currentIndex >= available.length) setCurrentIndex(Math.max(0, available.length - 1));
@@ -52,6 +167,27 @@ const App: React.FC = () => {
             [a[i], a[j]] = [a[j], a[i]];
         }
         return a;
+    };
+
+    // Select N questions with proportional domain distribution
+    const selectProportionalQuestions = (count: number): number[] => {
+        const target = Math.min(Math.max(0, count), TOTAL_QUESTIONS);
+        const allocations = calculateDomainAllocation(target);
+        const selected: number[] = [];
+
+        allocations.forEach(({ domain, count }) => {
+            if (count <= 0) return;
+            const pool = [...(QUESTIONS_BY_DOMAIN[domain] || [])];
+            const chosen = shuffle(pool).slice(0, Math.min(count, pool.length));
+            selected.push(...chosen.map(question => question.id));
+        });
+
+        if (selected.length < target) {
+            const remaining = questions.filter(q => !selected.includes(q.id));
+            selected.push(...shuffle(remaining).slice(0, target - selected.length).map(q => q.id));
+        }
+
+        return shuffle(selected).slice(0, target);
     };
 
     const shuffleAnswerOptions = (questionIds: number[]) => {
@@ -68,19 +204,40 @@ const App: React.FC = () => {
         return mapping;
     };
 
+    useEffect(() => {
+        if (mode !== 'practice' || !current) {
+            if (mode !== 'practice') {
+                setFeedback(null);
+            }
+            return;
+        }
+
+        if (currentAnswer === null) {
+            setFeedback(null);
+            return;
+        }
+
+        const isCorrect = currentAnswer === current.correct;
+        setFeedback(prev => {
+            if (prev && prev.questionId === current.id && prev.selectedOption === currentAnswer && prev.isCorrect === isCorrect) {
+                return prev;
+            }
+            return {
+                questionId: current.id,
+                isCorrect,
+                selectedOption: currentAnswer,
+            };
+        });
+    }, [mode, current, currentAnswer]);
+
     const startExam = () => {
         const ids = shuffle(questions.map(q => q.id)).slice(0, Math.min(50, questions.length));
+        setPracticeSummary(null);
+        setPracticeStartTime(null);
+        setFeedback(null);
         setExamSessionIds(ids);
-        setUserAnswers(prev => {
-            const copy = [...prev];
-            ids.forEach(id => (copy[id] = null));
-            return copy;
-        });
-        setFlagged(prev => {
-            const copy = [...prev];
-            ids.forEach(id => (copy[id] = false));
-            return copy;
-        });
+        setUserAnswers(createEmptyAnswerArray());
+        setFlagged(createEmptyFlagArray());
         // Shuffle answer options for exam
         const shuffled = shuffleAnswerOptions(ids);
         setShuffledOptions(shuffled);
@@ -108,6 +265,11 @@ const App: React.FC = () => {
         setTimeRemaining(null);
         setExamStartTime(null);
         setShuffledOptions({});
+        setUserAnswers(createEmptyAnswerArray());
+        setFlagged(createEmptyFlagArray());
+        setPracticeSummary(null);
+        setFeedback(null);
+        setPracticeStartTime(null);
         localStorage.removeItem('examStartTime');
         localStorage.removeItem('examSessionIds');
         localStorage.removeItem('shuffledOptions');
@@ -171,15 +333,80 @@ const App: React.FC = () => {
     };
 
         const startPractice = () => {
-            // clear any exam session and switch to practice mode
+            setPracticeSummary(null);
+            setPracticeStartTime(null);
+            setFeedback(null);
             setExamSessionIds(null);
-            // Shuffle answer options for practice mode too
-            const allIds = questions.map(q => q.id);
-            setShuffledOptions(shuffleAnswerOptions(allIds));
             setCurrentIndex(0);
+            // Show practice configuration screen
+            setMode('practiceConfig');
+        };
+
+        const startPracticeSession = (size: number) => {
+            const targetSize = Math.min(Math.max(1, size), questions.length);
+            const selectedIds = selectProportionalQuestions(targetSize);
+            if (selectedIds.length === 0) {
+                alert('Unable to start practice session – no questions available.');
+                return;
+            }
+
+            setPracticeSummary(null);
+            setExamSessionIds(selectedIds);
+            setUserAnswers(createEmptyAnswerArray());
+            setFlagged(createEmptyFlagArray());
+
+            const shuffled = shuffleAnswerOptions(selectedIds);
+            setShuffledOptions(shuffled);
+            setCurrentIndex(0);
+            setFeedback(null);
+            setPracticeStartTime(Date.now());
             setMode('practice');
+            
             // show sidebar only on larger screens
             if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
+        };
+
+        const finishPractice = () => {
+            if (!available.length) return;
+
+            const unanswered = available.filter(q => userAnswers[q.id] === null).length;
+            if (unanswered > 0) {
+                const confirmFinish = window.confirm(`You still have ${unanswered} unanswered question${unanswered === 1 ? '' : 's'}.
+
+Do you want to finish the practice session anyway?`);
+                if (!confirmFinish) return;
+            }
+
+            const breakdown: PracticeSummary['breakdown'] = {};
+            available.forEach(question => {
+                if (!breakdown[question.domain]) {
+                    breakdown[question.domain] = { correct: 0, total: 0, answered: 0 };
+                }
+                breakdown[question.domain].total += 1;
+                const answer = userAnswers[question.id];
+                if (answer !== null) {
+                    breakdown[question.domain].answered += 1;
+                    if (answer === question.correct) {
+                        breakdown[question.domain].correct += 1;
+                    }
+                }
+            });
+
+            const totalCorrect = Object.values(breakdown).reduce((sum, entry) => sum + entry.correct, 0);
+            const totalAnswered = Object.values(breakdown).reduce((sum, entry) => sum + entry.answered, 0);
+            const timeSpent = practiceStartTime ? Math.floor((Date.now() - practiceStartTime) / 1000) : 0;
+
+            setPracticeSummary({
+                correct: totalCorrect,
+                total: available.length,
+                answered: totalAnswered,
+                timeSpent,
+                breakdown,
+            });
+
+            setPracticeStartTime(null);
+            setFeedback(null);
+            setMode('practiceResults');
         };
 
         // on mount, hide the sidebar automatically for narrow screens
@@ -275,6 +502,14 @@ const App: React.FC = () => {
         const copy = [...userAnswers];
         copy[current.id] = originalIdx;
         setUserAnswers(copy);
+
+        if (mode === 'practice') {
+            setFeedback({
+                questionId: current.id,
+                isCorrect: originalIdx === current.correct,
+                selectedOption: originalIdx,
+            });
+        }
     };
 
     const toggleFlag = () => {
@@ -341,9 +576,354 @@ const App: React.FC = () => {
 
                                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
                                         <button onClick={() => { startExam(); setShowSidebar(true); }} style={{ background: '#1a73e8', color: '#fff', border: 'none', padding: '12px 22px', borderRadius: 8, fontSize: 16 }}>Start New Exam →</button>
-                                        <button onClick={() => { startPractice(); }} style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.16)', padding: '10px 18px', borderRadius: 8, fontSize: 16 }}>Practice</button>
+                                        <button onClick={() => { setMode('practiceConfig'); }} style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.16)', padding: '10px 18px', borderRadius: 8, fontSize: 16 }}>Practice</button>
                                         <button onClick={() => setMode('history')} style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.16)', padding: '10px 18px', borderRadius: 8, fontSize: 16 }}>📊 Exam History ({examHistory.length})</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Practice Configuration page
+            if (mode === 'practiceConfig') {
+                const presetSizes = [5, 10, 20, 50];
+                const selectedCount = practiceSize;
+                const limitedCount = Math.min(selectedCount, questions.length);
+                const domainPreview = calculateDomainAllocation(selectedCount);
+
+                return (
+                    <div className="config-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
+                        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+                            <div style={{ 
+                                background: 'rgba(51,65,85,0.95)', 
+                                borderRadius: 16, 
+                                padding: 40, 
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <h1 style={{ margin: '0 0 12px', fontSize: 32, color: '#f9fafb' }}>
+                                    Configure Practice Session
+                                </h1>
+                                <p style={{ color: '#9ca3af', margin: '0 0 32px' }}>
+                                    Select the number of questions for your practice set. Questions will be proportionally distributed across all domains.
+                                </p>
+
+                                <div style={{ marginBottom: 32 }}>
+                                    <label style={{ color: '#f9fafb', fontSize: 16, fontWeight: 600, display: 'block', marginBottom: 12 }}>
+                                        Number of Questions
+                                    </label>
+                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                                        {presetSizes.map(size => (
+                                            <button
+                                                key={size}
+                                                onClick={() => setPracticeSize(size)}
+                                                style={{
+                                                    padding: '12px 24px',
+                                                    borderRadius: 8,
+                                                    border: practiceSize === size ? '2px solid #1a73e8' : '2px solid rgba(255,255,255,0.2)',
+                                                    background: practiceSize === size ? 'rgba(26,115,232,0.2)' : 'rgba(255,255,255,0.05)',
+                                                    color: '#fff',
+                                                    fontSize: 16,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {size}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={questions.length}
+                                            value={customSize}
+                                            onChange={(e) => {
+                                                setCustomSize(e.target.value);
+                                                const val = parseInt(e.target.value);
+                                                if (val > 0 && val <= questions.length) {
+                                                    setPracticeSize(val);
+                                                }
+                                            }}
+                                            placeholder="Custom (1-500)"
+                                            style={{
+                                                padding: '12px',
+                                                borderRadius: 8,
+                                                border: '2px solid rgba(255,255,255,0.2)',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                color: '#fff',
+                                                fontSize: 16,
+                                                width: 180
+                                            }}
+                                        />
+                                        <span style={{ color: '#9ca3af' }}>or enter a custom number</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ 
+                                    background: 'rgba(26,115,232,0.1)', 
+                                    border: '1px solid rgba(26,115,232,0.3)',
+                                    borderRadius: 12, 
+                                    padding: 24, 
+                                    marginBottom: 32 
+                                }}>
+                                    <h3 style={{ margin: '0 0 16px', fontSize: 18, color: '#f9fafb' }}>
+                                        Distribution Preview ({limitedCount} questions)
+                                    </h3>
+                                    <div style={{ display: 'grid', gap: 12 }}>
+                                        {domainPreview.map(({ domain, total, count }) => (
+                                            <div key={domain} style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid rgba(255,255,255,0.1)'
+                                            }}>
+                                                <span style={{ color: '#e5e7eb', fontSize: 14 }}>{domain}</span>
+                                                <span style={{ color: '#60a5fa', fontWeight: 600 }}>
+                                                    {count} / {total}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                                    <button 
+                                        onClick={() => setMode('landing')}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: '2px solid rgba(255,255,255,0.2)',
+                                            background: 'transparent',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={() => startPracticeSession(practiceSize)}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: 'none',
+                                            background: '#1a73e8',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Start Practice Session →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (mode === 'practiceResults') {
+                if (!practiceSummary) {
+                    return (
+                        <div className="practice-results-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
+                            <div style={{ maxWidth: 800, margin: '0 auto' }}>
+                                <div style={{
+                                    background: 'rgba(51,65,85,0.95)',
+                                    borderRadius: 16,
+                                    padding: 40,
+                                    textAlign: 'center',
+                                    color: '#f9fafb',
+                                }}>
+                                    <h1 style={{ marginTop: 0 }}>Practice Summary Unavailable</h1>
+                                    <p style={{ color: '#9ca3af' }}>Start a new practice session to view results.</p>
+                                    <button
+                                        onClick={() => setMode('landing')}
+                                        style={{
+                                            marginTop: 24,
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: 'none',
+                                            background: '#1a73e8',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Back to Home
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                const percentage = practiceSummary.total > 0
+                    ? Math.round((practiceSummary.correct / practiceSummary.total) * 100)
+                    : 0;
+                const answeredPercentage = practiceSummary.total > 0
+                    ? Math.round((practiceSummary.answered / practiceSummary.total) * 100)
+                    : 0;
+                const timeSpentFormatted = formatTime(practiceSummary.timeSpent || 0);
+                const breakdownEntries = Object.entries(practiceSummary.breakdown).sort((a, b) => a[0].localeCompare(b[0]));
+
+                return (
+                    <div className="practice-results-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
+                        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                            <div style={{
+                                background: 'rgba(51,65,85,0.95)',
+                                borderRadius: 16,
+                                padding: 40,
+                                marginBottom: 32,
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            }}>
+                                <h1 style={{ margin: 0, fontSize: 32, color: '#f9fafb', textAlign: 'center' }}>Practice Session Summary</h1>
+                                <div style={{
+                                    marginTop: 24,
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: 24,
+                                    justifyContent: 'center',
+                                    color: '#f9fafb',
+                                }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 48, fontWeight: 800, color: '#60a5fa' }}>{percentage}%</div>
+                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Overall Accuracy</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{practiceSummary.correct} / {practiceSummary.total}</div>
+                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Correct Answers</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{practiceSummary.answered} / {practiceSummary.total}</div>
+                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Answered ({answeredPercentage}%)</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{timeSpentFormatted}</div>
+                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Time Spent</div>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    marginTop: 32,
+                                    display: 'flex',
+                                    gap: 12,
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap',
+                                }}>
+                                    <button
+                                        onClick={() => {
+                                            setMode('practice');
+                                            setCurrentIndex(0);
+                                            if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
+                                        }}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: 'none',
+                                            background: 'rgba(59,130,246,0.25)',
+                                            color: '#bfdbfe',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Review Questions
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setPracticeSummary(null);
+                                            setExamSessionIds(null);
+                                            setUserAnswers(createEmptyAnswerArray());
+                                            setFlagged(createEmptyFlagArray());
+                                            setShuffledOptions({});
+                                            setFeedback(null);
+                                            setPracticeStartTime(null);
+                                            setCurrentIndex(0);
+                                            setMode('practiceConfig');
+                                        }}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: 'none',
+                                            background: '#1a73e8',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Start New Practice Set →
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setPracticeSummary(null);
+                                            setExamSessionIds(null);
+                                            setUserAnswers(createEmptyAnswerArray());
+                                            setFlagged(createEmptyFlagArray());
+                                            setFeedback(null);
+                                            setPracticeStartTime(null);
+                                            setMode('landing');
+                                            setShowSidebar(false);
+                                        }}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 8,
+                                            border: '2px solid rgba(255,255,255,0.16)',
+                                            background: 'transparent',
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Back to Home
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                background: 'rgba(51,65,85,0.95)',
+                                borderRadius: 16,
+                                padding: 32,
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                            }}>
+                                <h2 style={{ marginTop: 0, marginBottom: 24, color: '#f9fafb', fontSize: 22 }}>Performance by Domain</h2>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e5e7eb' }}>
+                                        <thead>
+                                            <tr style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                                <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600 }}>Domain</th>
+                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Correct</th>
+                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Answered</th>
+                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Total</th>
+                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Accuracy</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {breakdownEntries.map(([domain, stats]) => {
+                                                const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                                                const rowColor = stats.correct === stats.total ? 'rgba(52,211,153,0.18)' : 'transparent';
+                                                return (
+                                                    <tr key={domain} style={{ background: rowColor }}>
+                                                        <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{domain}</td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.correct}</td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.answered}</td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.total}</td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', color: accuracy >= 70 ? '#34d399' : '#f87171' }}>{accuracy}%</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -719,7 +1299,13 @@ const App: React.FC = () => {
                 <div className="exam-banner fixed-banner">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ fontWeight: 700 }}>{mode === 'exam' ? `Exam — ${available.length} questions` : 'Practice'}</div>
+                            <div style={{ fontWeight: 700 }}>
+                                {mode === 'exam'
+                                    ? `Exam — ${available.length} questions`
+                                    : mode === 'practice'
+                                        ? `Practice — ${available.length} questions`
+                                        : 'Practice'}
+                            </div>
                             {mode === 'exam' && timeRemaining !== null && (
                                 <div style={{ 
                                     fontWeight: 600, 
@@ -730,6 +1316,18 @@ const App: React.FC = () => {
                                     background: timeRemaining < 900 ? 'rgba(248,113,113,0.1)' : 'rgba(96,165,250,0.1)'
                                 }}>
                                     ⏱️ {formatTime(timeRemaining)}
+                                </div>
+                            )}
+                            {mode === 'practice' && (
+                                <div style={{
+                                    fontWeight: 600,
+                                    fontSize: 16,
+                                    color: '#bfdbfe',
+                                    padding: '4px 10px',
+                                    borderRadius: 8,
+                                    background: 'rgba(96,165,250,0.12)',
+                                }}>
+                                    Progress: {answeredCount}/{available.length} answered
                                 </div>
                             )}
                         </div>
@@ -746,8 +1344,17 @@ const App: React.FC = () => {
                                     Submit Exam ({available.filter(q => userAnswers[q.id] !== null).length}/{available.length})
                                 </button>
                             )}
+                            {mode === 'practice' && (
+                                <button
+                                    className="csv-btn"
+                                    onClick={finishPractice}
+                                    style={{ fontWeight: 600 }}
+                                >
+                                    Finish Practice ({answeredCount}/{available.length})
+                                </button>
+                            )}
                             {mode !== 'exam' && (
-                                <button className="csv-btn" onClick={() => { startExam(); setShowSidebar(window.innerWidth > 900); }}>Start 50-Question Exam</button>
+                                <button className="csv-btn" onClick={() => { startExam(); setShowSidebar(typeof window !== 'undefined' ? window.innerWidth > 900 : true); }}>Start 50-Question Exam</button>
                             )}
                             <button className="csv-btn" onClick={() => { clearExam(); setMode('landing'); setShowSidebar(false); }}>Back to Home</button>
                             {/* desktop toggle (hidden on mobile) */}
@@ -887,6 +1494,43 @@ const App: React.FC = () => {
                                         });
                                     })()}
                                 </div>
+
+                                {mode === 'practice' && feedback && feedback.questionId === current.id && (
+                                    <div
+                                        style={{
+                                            marginTop: 20,
+                                            padding: '16px 18px',
+                                            borderRadius: 10,
+                                            border: `1px solid ${feedback.isCorrect ? 'rgba(52,211,153,0.45)' : 'rgba(248,113,113,0.45)'}`,
+                                            background: feedback.isCorrect ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)',
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 700, color: feedback.isCorrect ? '#34d399' : '#f87171', marginBottom: 8 }}>
+                                            {feedback.isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                                        </div>
+                                        <div style={{ color: '#e5e7eb', marginBottom: 6 }}>
+                                            Your answer: <strong>{feedback.selectedOption !== null ? current.options[feedback.selectedOption] : '—'}</strong>
+                                        </div>
+                                        <div style={{ color: '#bfdbfe', marginBottom: 10 }}>
+                                            Correct answer: <strong>{current.options[current.correct]}</strong>
+                                        </div>
+                                        <div style={{ color: '#e5e7eb', lineHeight: 1.6, marginBottom: feedback.isCorrect ? 0 : 10 }}>
+                                            {current.explanation}
+                                        </div>
+                                        {!feedback.isCorrect && feedback.selectedOption !== null && current.wrongExplanations && current.wrongExplanations[feedback.selectedOption] && (
+                                            <div style={{
+                                                marginTop: 10,
+                                                padding: '12px 14px',
+                                                borderRadius: 8,
+                                                border: '1px solid rgba(248,113,113,0.35)',
+                                                background: 'rgba(248,113,113,0.1)',
+                                                color: '#fecaca',
+                                            }}>
+                                                {current.wrongExplanations[feedback.selectedOption]}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
                                     <button onClick={() => setCurrentIndex(i => Math.max(0, i - 1))} className="nav-btn">Previous</button>
