@@ -8150,5 +8150,195 @@ export const questions: Question[] = [
       2: "Google-managed encryption keys (default encryption) are managed entirely by Google. You have no control over key lifecycle, rotation policies, or the ability to disable keys. For compliance requiring key control, you must use CMEK or CSEK.",
       3: "Encryption at rest is enabled by default in Google Cloud using Google-managed keys. This provides encryption but not key control. 'Enabling encryption' isn't a setting you change—it's always on. CMEK is how you gain control over the keys used for that encryption."
     }
+  },
+  {
+    id: 561,
+    domain: "Setting up a cloud solution environment",
+    subdomain: "1.1 Gemini Cloud Assist + 1.2 Billing",
+    question: "You are a new engineer. Your manager asks you to write a gcloud command to create five Spot VMs with the n2-standard-4 machine type in 'us-central1-a' using the latest Debian 11 image, and to find out how this will affect your project's costs. What is the most efficient way to accomplish this using new Google Cloud features?",
+    options: [
+      "Ask Gemini Cloud Assist to 'generate a gcloud command to create 5 Spot n2-standard-4 VMs with debian-11' and then separately use the Pricing Calculator.",
+      "Write the command from memory, run it, and then check the Billing export to BigQuery the next day to see the cost.",
+      "Ask Gemini Cloud Assist: 'What's the gcloud command to create 5 Spot n2-standard-4 VMs and how much will they cost?' Gemini can provide the command and a cost estimate.",
+      "Use the gcloud cheat sheet to find the command, then create a budget alert for the cost, and then run the command."
+    ],
+    correct: 2,
+    explanation: "A key feature of Gemini Cloud Assist is its ability to answer multi-part questions, including generating CLI commands and providing cost estimations in one conversational flow, based on the resources described. ",
+    wrongExplanations: {
+      0: "This is a valid, but less efficient, two-step process. Gemini can often handle both parts in a single query.",
+      1: "Running the command without knowing the cost is dangerous and does not provide an estimate. Billing data is also not real-time.",
+      3: "This is a good manual process, but Gemini is designed to accelerate this by providing the command and estimate directly."
+    }
+  },
+  {
+    id: 562,
+    domain: "Planning and implementing a cloud solution",
+    subdomain: "2.3 Cloud NGFW + 4.1 Secure Tags",
+    question: "You are using Cloud NGFW (Next-Generation Firewall). You need to allow VMs tagged with the secure tag `role=payment-processor` to make egress connections on TCP port 443 to any destination. All other traffic should be denied. What is the correct way to configure this?",
+    options: [
+      "Create a VPC firewall rule with priority 1000, source tag `role=payment-processor`, and allow tcp:443.",
+      "Create a network firewall policy with a rule of priority 1000, source secure tag `role=payment-processor`, action 'allow', and protocol tcp:443.",
+      "VPC firewall rules and Cloud NGFW policies cannot be combined. You must use one or the other.",
+      "Create a Cloud Armor policy to allow egress traffic based on the tag."
+    ],
+    correct: 1,
+    explanation: "Cloud NGFW uses 'network firewall policies' which are more advanced than legacy VPC firewall rules. A key feature is the ability to use IAM-controlled 'secure tags' (not network tags) as the source or destination for a rule. [cite: 910, 911]",
+    wrongExplanations: {
+      0: "Legacy VPC firewall rules use 'network tags', not 'secure tags'. Cloud NGFW uses 'network firewall policies' which are a different resource.",
+      2: "While you should migrate to one, they can coexist, but the question is about the *correct* way to use the new NGFW features.",
+      3: "Cloud Armor is a WAF for external load balancers and does not control egress traffic from VMs."
+    }
+  },
+  {
+    id: 563,
+    domain: "Ensuring successful operation of a cloud solution",
+    subdomain: "3.2 Database Center + 3.4 Query Insights",
+    question: "You are a fleet manager using the **Database Center** dashboard and notice that a specific Cloud SQL instance has a 'High CPU' warning. What is the most logical *next step* to diagnose the root cause of this high CPU?",
+    options: [
+      "Increase the vCPU count for the instance immediately to resolve the performance issue.",
+      "Use the links in Database Center to navigate directly to the **Query Insights** dashboard for that instance to identify the specific queries causing the load.",
+      "Check Cloud Logging to see if the database instance has any error messages.",
+      "Use `gcloud sql instances describe` to check the instance's configuration."
+    ],
+    correct: 1,
+    explanation: "Database Center  provides the high-level 'what' (High CPU). Query Insights  provides the 'why' (which query is at fault). The intended workflow is to use Database Center to monitor the fleet and then drill down into Query Insights for per-instance diagnostics.",
+    wrongExplanations: {
+      0: "Scaling up is a reactive fix that doesn't solve the root cause. An inefficient query will just consume more CPU on a larger instance. You must diagnose first.",
+      2: "Logs are useful, but high CPU is a performance issue, not necessarily an error. Query Insights is the specific tool for diagnosing query performance.",
+      3: "Describing the instance shows its configuration, not its real-time performance or the specific queries that are running."
+    }
+  },
+  {
+    id: 564,
+    domain: "Planning and implementing a cloud solution",
+    subdomain: "2.2 Database selection (AlloyDB vs. Spanner vs. SQL)",
+    question: "A financial services company is migrating a 10TB mission-critical PostgreSQL database. They require 99.99% availability, full PostgreSQL compatibility, and transaction performance that is 3-4x faster than standard PostgreSQL. What is the best-fit managed service?",
+    options: [
+      "Cloud SQL for PostgreSQL with a high-availability configuration.",
+      "AlloyDB for PostgreSQL.",
+      "Cloud Spanner with the PostgreSQL interface.",
+      "Manually managing a PostgreSQL cluster on Compute Engine."
+    ],
+    correct: 1,
+    explanation: "AlloyDB  is specifically designed for this. It offers full PostgreSQL compatibility, a 99.99% SLA, and significantly higher performance for transactional workloads (advertised as 4x faster) than standard PostgreSQL.",
+    wrongExplanations: {
+      0: "Cloud SQL's HA SLA is 99.95% [cite: 24] and it offers *standard* PostgreSQL performance, not the 3-4x required.",
+      2: "Cloud Spanner is for global scale and horizontal sharding. While it has a PostgreSQL interface, it is not 100% wire-compatible and is designed for a different architectural pattern than a traditional PostgreSQL lift-and-shift.",
+      3: "Manual management on Compute Engine creates massive operational overhead and does not come with a 99.99% SLA by default."
+    }
+  },
+  {
+    id: 565,
+    domain: "Planning and implementing a cloud solution",
+    subdomain: "2.1 Compute (GKE Autopilot vs. Cloud Run)",
+    question: "You have a complex, multi-container application defined by Kubernetes YAML files (Deployments, Services, etc.). You want a serverless, managed environment that can run these manifests directly with minimal changes, but you do not want to manage nodes. What should you use?",
+    options: [
+      "Cloud Run, by deploying each container as a separate service.",
+      "GKE Autopilot cluster.",
+      "Cloud Functions, by rewriting the containers as functions.",
+      "App Engine Flexible."
+    ],
+    correct: 1,
+    explanation: "GKE Autopilot [cite: 900] is the correct choice because it consumes standard Kubernetes manifests directly. It provides a serverless *Kubernetes* experience, abstracting nodes while keeping the full Kubernetes API. Cloud Run can't run complex, multi-container YAMLs directly.",
+    wrongExplanations: {
+      0: "Cloud Run is container-based but does not use the Kubernetes resource model (Deployments, Services) directly. It would require a significant re-architecture of the application's deployment.",
+      2: "Rewriting to Cloud Functions is a major change and is not suitable for a complex, existing Kubernetes application.",
+      3: "App Engine Flexible is a PaaS platform, not a Kubernetes environment. It cannot consume Kubernetes YAML files."
+    }
+  },
+  {
+    id: 566,
+    domain: "Planning and implementing a cloud solution",
+    subdomain: "2.4 IaC (Fabric FAST vs. Terraform)",
+    question: "Your enterprise is starting its Google Cloud adoption. You need to deploy a secure, multi-project foundation with networking, IAM, and billing already configured according to Google's best practices. You want to use Terraform but want to avoid writing all the modules from scratch. What should you use?",
+    options: [
+      "Google's Fabric FAST framework.",
+      "Cloud Deployment Manager.",
+      "Config Connector.",
+      "gcloud init."
+    ],
+    correct: 0,
+    explanation: "Fabric FAST (part of the Cloud Foundation Toolkit)  is a set of pre-built, best-practice Terraform modules specifically designed to deploy a secure, enterprise-ready Google Cloud foundation. It's the 'fast start' for organizations that want to use Terraform without reinventing the wheel.",
+    wrongExplanations: {
+      1: "Cloud Deployment Manager is Google's native IaC tool, but it is not as widely adopted as Terraform. Fabric FAST is specifically the Terraform-based solution.",
+      2: "Config Connector is for managing GCP resources *from* Kubernetes, not for setting up the initial foundation.",
+      3: "`gcloud init` [cite: 52] configures your local CLI, it does not deploy an entire enterprise-scale cloud foundation."
+    }
+  },
+  {
+    id: 567,
+    domain: "Configuring access and security",
+    subdomain: "4.1 IAM Conditions",
+    question: "A contractor needs to access a production VM to perform a one-time fix. You want to grant them `roles/compute.osAdminLogin` for *only* the next 4 hours. What is the most secure and automated way to do this?",
+    options: [
+      "Grant them the role and set a calendar reminder to revoke it in 4 hours.",
+      "Grant them the role with an IAM Condition that specifies a 4-hour expiration timestamp.",
+      "Give them the credentials to a shared admin service account for 4 hours.",
+      "Use `gcloud compute ssh` [cite: 122] to SSH in for them and share your terminal."
+    ],
+    correct: 1,
+    explanation: "IAM Conditions allow for time-limited access. You can add a condition to the role binding that automatically expires at a specific timestamp. This is the most secure and auditable method, as it requires no manual cleanup and enforces the time limit programmatically.",
+    wrongExplanations: {
+      0: "Manual revocation is error-prone. If you forget, the contractor has permanent admin access.",
+      2: "Sharing service account credentials is a security anti-pattern and should be avoided.",
+      3: "Sharing your terminal is insecure and not scalable."
+    }
+  },
+  {
+    id: 568,
+    domain: "Ensuring successful operation of a cloud solution",
+    subdomain: "3.4 Ops Agent vs. Legacy Agents",
+    question: "You are setting up monitoring for a new fleet of Compute Engine VMs. You need to collect system metrics (like memory and disk usage), application logs (from `/var/log/myapp.log`), and metrics from a third-party app (like Nginx). What is the single, unified agent you should install?",
+    options: [
+      "The legacy Cloud Logging agent and the legacy Cloud Monitoring agent.",
+      "The Cloud Trace agent.",
+      "The Ops Agent.",
+      "The GKE metrics agent."
+    ],
+    correct: 2,
+    explanation: "The Ops Agent is Google's unified agent [cite: 958] that replaces the older, separate Logging and Monitoring agents. It is built on OpenTelemetry and can collect logs (from files, syslog) and metrics (system, third-party apps like Nginx/Redis) in a single, configurable agent.",
+    wrongExplanations: {
+      0: "Using the two legacy agents is no longer the best practice. The Ops Agent is the modern, recommended solution that unifies both functions.",
+      1: "The Cloud Trace agent is for collecting distributed tracing spans, not for logs or system metrics.",
+      3: "There is no 'GKE metrics agent'. GKE monitoring is integrated into the node image."
+    }
+  },
+  {
+    id: 569,
+    domain: "Configuring access and security",
+    subdomain: "4.2 GKE Workload Identity",
+    question: "Your application, running as a pod in a GKE cluster, needs to write objects to a Cloud Storage bucket. Following the principle of least privilege and avoiding static keys, what is the correct sequence of steps?",
+    options: [
+      "Create a GCS bucket. Grant the GKE node's service account `roles/storage.objectCreator`. All pods on the node will inherit this permission.",
+      "Create a Google Service Account (GSA) with `roles/storage.objectCreator`. Create a service account key, store it as a Kubernetes secret, and mount it into the pod.",
+      "Enable Workload Identity on the cluster. Create a Google Service Account (GSA) with `roles/storage.objectCreator`. Bind the pod's Kubernetes Service Account (KSA) to the GSA.",
+      "Make the GCS bucket public, and configure the pod to write to the public URL."
+    ],
+    correct: 2,
+    explanation: "This is the modern, secure, and recommended pattern. Workload Identity [cite: 974] allows a Kubernetes Service Account (KSA) to impersonate a Google Service Account (GSA). This gives pod-level, fine-grained permissions without using the node's service account or managing static JSON keys.",
+    wrongExplanations: {
+      0: "Using the node's service account is bad practice. It grants all pods on that node the same broad permissions, violating least privilege.",
+      1: "Storing static keys in Kubernetes secrets is the old method and is a security risk. Workload Identity is the keyless, more secure replacement.",
+      3: "Making the bucket public is a massive security vulnerability."
+    }
+  },
+  {
+    id: 570,
+    domain: "Setting up a cloud solution environment",
+    subdomain: "1.2 Billing Automation",
+    question: "Your company policy requires that any project exceeding its $1,000 monthly budget must be automatically shut down. What is the most reliable way to implement this?",
+    options: [
+      "Set a billing budget alert for 100%. The alert will automatically stop all resources in the project.",
+      "Set a billing budget alert for 100% that sends a message to a Pub/Sub topic. Create a Cloud Function triggered by that topic that programmatically disables billing for the project.",
+      "Set a hard quota on the project for $1,000.",
+      "Grant the finance team `roles/billing.projectManager` so they can manually disable billing when they receive the 100% alert email."
+    ],
+    correct: 1,
+    explanation: "This is a key automation pattern. Billing alerts *do not* stop spending[cite: 100, 1301, 111]; they only send notifications. To automate action, you send the alert to a Pub/Sub topic, which triggers a Cloud Function. That function can then call the Cloud Billing API to disable the project's billing, effectively shutting down all resources.",
+    wrongExplanations: {
+      0: "This is incorrect. Billing alerts *only* notify; they never take action or stop spending.",
+  2: "Quotas are based on resource counts (e.g., \"10 VMs\"), not on dollar amounts. You cannot set a quota for $1,000.",
+      3: "This relies on manual intervention, which is not reliable or fast enough to prevent cost overruns from a runaway script."
+    }
   }
 ];
