@@ -2,7 +2,8 @@ name: Build and deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - gh-pages-deploy
 
 permissions:
   contents: read
