@@ -739,10 +739,11 @@ Do you want to finish the practice session anyway?`);
                                                 justifyContent: 'space-between', 
                                                 alignItems: 'center',
                                                 padding: '8px 0',
-                                                borderBottom: '1px solid rgba(255,255,255,0.1)'
+                                                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                                gap: '12px'
                                             }}>
-                                                <span style={{ color: '#e5e7eb', fontSize: 14 }}>{domain}</span>
-                                                <span style={{ color: '#60a5fa', fontWeight: 600 }}>
+                                                <span style={{ color: '#e5e7eb', fontSize: 14, flex: 1 }}>{domain}</span>
+                                                <span style={{ color: '#60a5fa', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                                     {count} / {total}
                                                 </span>
                                             </div>
@@ -1150,10 +1151,11 @@ Do you want to finish the practice session anyway?`);
 
             // Results page
             if (mode === 'results') {
-                const correctCount = available.filter(q => userAnswers[q.id] === q.correct).length;
-                const totalCount = available.length;
+                // If reviewing a historical exam, use stored values; otherwise calculate from current state
+                const correctCount = reviewingExam ? reviewingExam.score : available.filter(q => userAnswers[q.id] === q.correct).length;
+                const totalCount = reviewingExam ? reviewingExam.total : available.length;
                 const wrongCount = totalCount - correctCount;
-                const percentage = Math.round((correctCount / totalCount) * 100);
+                const percentage = reviewingExam ? reviewingExam.percentage : Math.round((correctCount / totalCount) * 100);
                 const passed = percentage >= 70; // Assuming 70% is passing
                 const filteredCount = filteredQuestions.length;
                 const filterOptions: Array<{ key: 'all' | 'correct' | 'wrong'; label: string; count: number }> = [
