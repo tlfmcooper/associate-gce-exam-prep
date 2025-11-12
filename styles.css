@@ -687,7 +687,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
   .results-inner{gap:24px;}
   .results-breakdown-header{flex-direction:column;align-items:flex-start;}
   .results-filter-group{width:100%;justify-content:flex-start;}
-  .results-card{padding:20px;}
+  .results-card{padding:20px;gap:12px;}
+  .results-card-header{gap:8px;}
+  .results-card-status{font-size:20px;}
+  .results-card-meta{font-size:12px;gap:6px;}
+  .results-card-meta span{white-space:nowrap;}
+  .results-card-title{font-size:0.72rem;line-height:1.5;}
+  .results-card-options{gap:10px;}
+  .results-card-option{padding:10px 12px;}
+  .results-card-explanation{padding:12px;font-size:14px;}
   .modal-content{padding:24px;}
 }
 
@@ -833,15 +841,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
 
 @media (max-width:640px){
   .practice-results-container{padding:24px 16px;}
-  .practice-results-header{padding:28px 20px;}
-  .practice-results-stats{grid-template-columns:repeat(2,1fr);gap:16px;}
+  .practice-results-inner{gap:24px;}
+  .practice-results-header{padding:24px 18px;}
+  .practice-results-title{margin:0 0 20px;font-size:clamp(22px,5vw,28px);}
+  .practice-results-stats{grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px;}
+  .practice-stat-value{font-size:clamp(22px,5.5vw,28px);margin-bottom:6px;}
+  .practice-stat-value.primary{font-size:clamp(32px,7vw,42px);}
+  .practice-stat-label{font-size:clamp(12px,2.3vw,14px);}
   .practice-results-actions{gap:10px;}
-  .practice-results-breakdown{padding:24px 16px;}
+  .practice-action-button{padding:11px 18px;font-size:clamp(13px,2.3vw,15px);}
+  .practice-results-breakdown{padding:22px 16px;}
+  .practice-breakdown-title{margin:0 0 20px;font-size:clamp(17px,3.8vw,20px);}
   .practice-table{min-width:400px;}
+  .practice-table-header{padding:10px 6px;font-size:clamp(12px,2.3vw,14px);}
+  .practice-table-header.left{padding-left:12px;}
+  .practice-table-cell{padding:10px 6px;font-size:clamp(12px,2.3vw,14px);}
+  .practice-table-cell.left{padding-left:12px;}
 }
 
 @media (max-width:480px){
-  .practice-results-stats{grid-template-columns:1fr;gap:12px;}
+  .practice-results-container{padding:20px 12px;}
+  .practice-results-inner{gap:20px;}
+  .practice-results-header{padding:20px 16px;}
+  .practice-results-title{margin:0 0 16px;}
+  .practice-results-stats{grid-template-columns:1fr;gap:12px;margin-bottom:20px;}
+  .practice-stat-card{padding:8px 0;}
+  .practice-results-actions{gap:8px;}
   .practice-action-button{width:100%;padding:12px 16px;}
+  .practice-results-breakdown{padding:20px 12px;}
+  .practice-breakdown-title{margin:0 0 16px;}
+  .practice-table{min-width:360px;font-size:12px;}
+  .practice-table-header{padding:8px 4px;font-size:11px;}
+  .practice-table-header.left{padding-left:8px;}
+  .practice-table-cell{padding:8px 4px;font-size:12px;}
+  .practice-table-cell.left{padding-left:8px;}
 }
 
