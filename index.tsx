@@ -98,7 +98,7 @@ const App: React.FC = () => {
     const [flagged, setFlagged] = useState<boolean[]>(createEmptyFlagArray);
     const [resultsFilter, setResultsFilter] = useState<'all' | 'correct' | 'wrong'>('all');
     const [showSubmitWarning, setShowSubmitWarning] = useState(false);
-    const [pendingSubmitStats, setPendingSubmitStats] = useState<{ flagged: number; unanswered: number; answered: number } | null>(null);
+    const [pendingSubmitStats, setPendingSubmitStats] = useState<{ flagged: number; unanswered: number; answered: number; total: number } | null>(null);
     const [feedback, setFeedback] = useState<{ questionId: number; isCorrect: boolean; selectedOption: number | null } | null>(null);
     const [practiceSummary, setPracticeSummary] = useState<PracticeSummary | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -128,7 +128,28 @@ const App: React.FC = () => {
 
     const current = available[currentIndex];
     const currentAnswer = current ? userAnswers[current.id] : null;
-    const answeredCount = available.reduce((count, q) => count + (userAnswers[q.id] !== null ? 1 : 0), 0);
+
+    const submissionStats = useMemo(() => {
+        const total = available.length;
+        let answered = 0;
+        let flaggedCount = 0;
+
+        available.forEach(question => {
+            if (userAnswers[question.id] !== null) answered += 1;
+            if (flagged[question.id]) flaggedCount += 1;
+        });
+
+        const unanswered = Math.max(0, total - answered);
+
+        return {
+            total,
+            answered,
+            unanswered,
+            flagged: flaggedCount,
+        };
+    }, [available, userAnswers, flagged]);
+
+    const answeredCount = submissionStats.answered;
 
     // Function to select N questions proportionally by domain
     const selectPracticeQuestions = (count: number): number[] => {
@@ -327,26 +348,23 @@ const App: React.FC = () => {
         setMode('results' as any);
     };
 
-    const submitExam = () => {
-        const answeredCount = available.filter(q => userAnswers[q.id] !== null).length;
+    const submitExam = (options?: { bypassFlagged?: boolean }) => {
+        const { answered, unanswered, flagged, total } = submissionStats;
 
-        if (answeredCount === 0) {
+        if (answered === 0) {
             alert('You haven\'t answered any questions yet!');
             return;
         }
 
-        const flaggedCount = available.filter(q => flagged[q.id]).length;
-        const unansweredCount = available.length - answeredCount;
-
-        if (flaggedCount > 0) {
-            setPendingSubmitStats({ flagged: flaggedCount, unanswered: unansweredCount, answered: answeredCount });
+        if (!options?.bypassFlagged && flagged > 0) {
+            setPendingSubmitStats({ flagged, unanswered, answered, total });
             setShowSubmitWarning(true);
             return;
         }
 
-        const confirmationMessage = unansweredCount > 0
-            ? `You have answered ${answeredCount} of ${available.length} questions (${unansweredCount} unanswered).\n\nAre you sure you want to submit your exam?`
-            : `You have answered all ${available.length} questions.\n\nAre you sure you want to submit your exam?`;
+        const confirmationMessage = unanswered > 0
+            ? `You have answered ${answered} of ${total} questions (${unanswered} unanswered).\n\nAre you sure you want to submit your exam?`
+            : `You have answered all ${total} questions.\n\nAre you sure you want to submit your exam?`;
 
         const confirmed = window.confirm(confirmationMessage);
         if (!confirmed) return;
@@ -473,7 +491,7 @@ Do you want to finish the practice session anyway?`);
                         clearInterval(interval);
                         // Auto-submit exam when timer reaches zero
                         alert('Time is up! Your exam will now be submitted.');
-                        submitExam();
+                        submitExam({ bypassFlagged: true });
                         return 0;
                     }
 
@@ -1145,115 +1163,56 @@ Do you want to finish the practice session anyway?`);
                 ];
 
                 return (
-                    <div className="results-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
-                        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-                            {/* Results Header */}
-                            <div className="results-header" style={{ 
-                                background: 'rgba(51,65,85,0.95)', 
-                                borderRadius: 16, 
-                                padding: 40, 
-                                marginBottom: 32,
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-                            }}>
-                                <h1 style={{ margin: 0, fontSize: 36, color: '#f9fafb', textAlign: 'center' }}>
-                                    Exam Results
-                                </h1>
-                                <div style={{ 
-                                    marginTop: 24, 
-                                    textAlign: 'center', 
-                                    fontSize: 72, 
-                                    fontWeight: 800,
-                                    color: passed ? '#34d399' : '#f87171'
-                                }}>
-                                    {percentage}%
-                                </div>
-                                <div style={{ 
-                                    marginTop: 16, 
-                                    textAlign: 'center', 
-                                    fontSize: 24, 
-                                    fontWeight: 600,
-                                    color: passed ? '#34d399' : '#f87171'
-                                }}>
+                    <div className="results-container">
+                        <div className="results-inner">
+                            <section className="results-header">
+                                <h1 className="results-title">Exam Results</h1>
+                                <div className={`results-score ${passed ? 'passed' : 'failed'}`}>{percentage}%</div>
+                                <div className={`results-status ${passed ? 'passed' : 'failed'}`}>
                                     {passed ? '✓ PASSED' : '✗ FAILED'}
                                 </div>
-                                <div style={{ 
-                                    marginTop: 16, 
-                                    textAlign: 'center', 
-                                    fontSize: 18, 
-                                    color: '#9ca3af' 
-                                }}>
+                                <p className="results-summary">
                                     You answered {correctCount} out of {totalCount} questions correctly
-                                </div>
-                                <div style={{ marginTop: 32, textAlign: 'center', display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                </p>
+                                <div className="results-actions">
                                     {reviewingExam && (
-                                        <button 
+                                        <button
                                             onClick={() => { setReviewingExam(null); setMode('history'); }}
-                                            style={{
-                                                background: 'transparent',
-                                                color: '#60a5fa',
-                                                border: '2px solid rgba(96,165,250,0.5)',
-                                                padding: '14px 32px',
-                                                borderRadius: 8,
-                                                fontSize: 16,
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
-                                            }}
+                                            className="results-action secondary"
+                                            type="button"
                                         >
                                             ← Back to History
                                         </button>
                                     )}
-                                    <button 
+                                    <button
                                         onClick={() => { clearExam(); setReviewingExam(null); setMode('landing'); }}
-                                        style={{
-                                            background: 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '14px 32px',
-                                            borderRadius: 8,
-                                            fontSize: 16,
-                                            fontWeight: 600,
-                                            cursor: 'pointer'
-                                        }}
+                                        className="results-action primary"
+                                        type="button"
                                     >
                                         Back to Home
                                     </button>
                                 </div>
-                            </div>
+                            </section>
 
-                            {/* Question by Question Breakdown */}
-                            <div className="results-breakdown">
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+                            <section className="results-breakdown">
+                                <div className="results-breakdown-header">
                                     <div>
-                                        <h2 style={{ fontSize: 24, color: '#f9fafb', margin: 0 }}>
-                                            Detailed Breakdown
-                                        </h2>
+                                        <h2 className="results-subtitle">Detailed Breakdown</h2>
                                         {resultsFilter !== 'all' && (
-                                            <div style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>
+                                            <p className="results-filter-summary">
                                                 Showing {filteredCount} of {totalCount} questions
-                                            </div>
+                                            </p>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                    <div className="results-filter-group">
                                         {filterOptions.map(option => {
                                             const isActive = resultsFilter === option.key;
                                             return (
                                                 <button
                                                     key={option.key}
                                                     onClick={() => setResultsFilter(option.key)}
-                                                    style={{
-                                                        border: 'none',
-                                                        borderRadius: 999,
-                                                        padding: '10px 18px',
-                                                        fontSize: 14,
-                                                        fontWeight: 600,
-                                                        cursor: 'pointer',
-                                                        background: isActive ? 'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(96,165,250,0.9))' : 'rgba(15,23,42,0.6)',
-                                                        color: isActive ? '#fff' : '#cbd5f5',
-                                                        boxShadow: isActive ? '0 10px 30px rgba(59,130,246,0.35)' : 'none',
-                                                        transition: 'transform 0.15s ease'
-                                                    }}
+                                                    className={`results-filter-button${isActive ? ' active' : ''}`}
+                                                    type="button"
                                                 >
                                                     {option.label} ({option.count})
                                                 </button>
@@ -1262,131 +1221,80 @@ Do you want to finish the practice session anyway?`);
                                     </div>
                                 </div>
                                 {filteredQuestions.length === 0 ? (
-                                    <div style={{
-                                        background: 'rgba(15,23,42,0.7)',
-                                        border: '1px solid rgba(96,165,250,0.3)',
-                                        borderRadius: 12,
-                                        padding: 24,
-                                        color: '#cbd5f5'
-                                    }}>
+                                    <div className="results-empty-state">
                                         No questions match this filter. Try a different filter to continue reviewing your results.
                                     </div>
                                 ) : (
-                                filteredQuestions.map((q, filteredIdx) => {
-                                    const userAnswer = userAnswers[q.id];
-                                    const isCorrect = userAnswer === q.correct;
-                                    const questionNumber = available.findIndex(item => item.id === q.id) + 1;
-                                    
-                                    return (
-                                        <div 
-                                            key={q.id} 
-                                            style={{ 
-                                                background: 'rgba(51,65,85,0.95)',
-                                                borderRadius: 12,
-                                                padding: 24,
-                                                marginBottom: 24,
-                                                backdropFilter: 'blur(12px)',
-                                                border: `2px solid ${isCorrect ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
-                                                boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                                <div style={{ 
-                                                    fontSize: 24, 
-                                                    fontWeight: 700,
-                                                    color: isCorrect ? '#34d399' : '#f87171'
-                                                }}>
-                                                    {isCorrect ? '✓' : '✗'}
-                                                </div>
-                                                <div style={{ fontSize: 14, color: '#9ca3af' }}>
-                                                    Question {questionNumber} of {totalCount}
-                                                    {resultsFilter !== 'all' && (
-                                                        <span style={{ color: '#cbd5f5' }}>
-                                                            {` • Filter ${filteredIdx + 1} of ${filteredCount}`}
+                                    filteredQuestions.map((q, filteredIdx) => {
+                                        const userAnswer = userAnswers[q.id];
+                                        const isCorrect = userAnswer === q.correct;
+                                        const questionNumber = available.findIndex(item => item.id === q.id) + 1;
+
+                                        return (
+                                            <article
+                                                key={q.id}
+                                                className={`results-card ${isCorrect ? 'correct' : 'wrong'}`}
+                                            >
+                                                <header className="results-card-header">
+                                                    <div className={`results-card-status ${isCorrect ? 'correct' : 'wrong'}`}>
+                                                        {isCorrect ? '✓' : '✗'}
+                                                    </div>
+                                                    <div className="results-card-meta">
+                                                        <span>
+                                                            Question {questionNumber} of {totalCount}
                                                         </span>
-                                                    )}
+                                                        {resultsFilter !== 'all' && (
+                                                            <span className="results-card-filter-index">
+                                                                Filter {filteredIdx + 1} of {filteredCount}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </header>
+
+                                                <div className="results-card-domain">
+                                                    <span className="domain-badge">{q.domain}</span>
                                                 </div>
-                                            </div>
 
-                                            <div style={{ marginBottom: 12 }}>
-                                                <span className="domain-badge" style={{ fontSize: 12 }}>{q.domain}</span>
-                                            </div>
+                                                <h3 className="results-card-title">
+                                                    {q.question}
+                                                </h3>
 
-                                            <h3 style={{ fontSize: 18, color: '#f9fafb', marginBottom: 16, lineHeight: 1.5 }}>
-                                                {q.question}
-                                            </h3>
+                                                <div className="results-card-options">
+                                                    {q.options.map((opt, optIdx) => {
+                                                        const isUserAnswer = userAnswer === optIdx;
+                                                        const isCorrectAnswer = q.correct === optIdx;
 
-                                            <div style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
-                                                {q.options.map((opt, optIdx) => {
-                                                    const isUserAnswer = userAnswer === optIdx;
-                                                    const isCorrectAnswer = q.correct === optIdx;
-                                                    
-                                                    return (
-                                                        <div
-                                                            key={optIdx}
-                                                            style={{
-                                                                padding: '12px 16px',
-                                                                borderRadius: 8,
-                                                                border: `2px solid ${
-                                                                    isCorrectAnswer 
-                                                                        ? 'rgba(52,211,153,0.6)' 
-                                                                        : isUserAnswer 
-                                                                            ? 'rgba(248,113,113,0.6)' 
-                                                                            : 'rgba(255,255,255,0.1)'
-                                                                }`,
-                                                                background: isCorrectAnswer 
-                                                                    ? 'rgba(52,211,153,0.1)' 
-                                                                    : isUserAnswer 
-                                                                        ? 'rgba(248,113,113,0.1)' 
-                                                                        : 'rgba(51,65,85,0.5)',
-                                                                color: '#f9fafb'
-                                                            }}
-                                                        >
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                                {isCorrectAnswer && <span style={{ color: '#34d399', fontWeight: 600 }}>✓ Correct</span>}
-                                                                {isUserAnswer && !isCorrectAnswer && <span style={{ color: '#f87171', fontWeight: 600 }}>✗ Your Answer</span>}
-                                                                <span>{opt}</span>
+                                                        return (
+                                                            <div
+                                                                key={optIdx}
+                                                                className={`results-card-option${isCorrectAnswer ? ' correct' : ''}${isUserAnswer && !isCorrectAnswer ? ' incorrect' : ''}`}
+                                                            >
+                                                                <div className="results-card-option-label">
+                                                                    {isCorrectAnswer && <span className="results-card-chip correct">✓ Correct</span>}
+                                                                    {isUserAnswer && !isCorrectAnswer && <span className="results-card-chip incorrect">✗ Your Answer</span>}
+                                                                    <span>{opt}</span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
 
-                                            {/* Explanations */}
-                                            <div style={{ 
-                                                background: 'rgba(59,130,246,0.1)', 
-                                                border: '1px solid rgba(59,130,246,0.2)',
-                                                borderRadius: 8, 
-                                                padding: 16, 
-                                                marginBottom: 12 
-                                            }}>
-                                                <div style={{ fontWeight: 600, color: '#60a5fa', marginBottom: 8 }}>
-                                                    ℹ️ Explanation:
+                                                <div className="results-card-explanation primary">
+                                                    <div className="results-card-explanation-title">ℹ️ Explanation:</div>
+                                                    <div>{q.explanation}</div>
                                                 </div>
-                                                <div style={{ color: '#e5e7eb', lineHeight: 1.6 }}>
-                                                    {q.explanation}
-                                                </div>
-                                            </div>
 
-                                            {!isCorrect && userAnswer !== null && q.wrongExplanations && q.wrongExplanations[userAnswer] && (
-                                                <div style={{ 
-                                                    background: 'rgba(248,113,113,0.1)', 
-                                                    border: '1px solid rgba(248,113,113,0.2)',
-                                                    borderRadius: 8, 
-                                                    padding: 16 
-                                                }}>
-                                                    <div style={{ fontWeight: 600, color: '#f87171', marginBottom: 8 }}>
-                                                        ⚠️ Why your answer was wrong:
+                                                {!isCorrect && userAnswer !== null && q.wrongExplanations && q.wrongExplanations[userAnswer] && (
+                                                    <div className="results-card-explanation warning">
+                                                        <div className="results-card-explanation-title">⚠️ Why your answer was wrong:</div>
+                                                        <div>{q.wrongExplanations[userAnswer]}</div>
                                                     </div>
-                                                    <div style={{ color: '#e5e7eb', lineHeight: 1.6 }}>
-                                                        {q.wrongExplanations[userAnswer]}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                }))}
-                            </div>
+                                                )}
+                                            </article>
+                                        );
+                                    })
+                                )}
+                            </section>
                         </div>
                     </div>
                 );
@@ -1399,76 +1307,38 @@ Do you want to finish the practice session anyway?`);
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="submit-warning-title"
-                        style={{
-                            position: 'fixed',
-                            inset: 0,
-                            background: 'rgba(15,23,42,0.85)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 1000,
-                            padding: '20px'
-                        }}
+                        className="modal-overlay"
                     >
-                        <div
-                            style={{
-                                background: 'rgba(15,23,42,0.95)',
-                                borderRadius: 16,
-                                padding: 32,
-                                maxWidth: 480,
-                                width: '100%',
-                                border: '1px solid rgba(96,165,250,0.3)',
-                                boxShadow: '0 30px 80px rgba(2,6,23,0.7)'
-                            }}
-                        >
-                            <h3 id="submit-warning-title" style={{ marginTop: 0, marginBottom: 12, fontSize: 22, color: '#f9fafb' }}>
+                        <div className="modal-content" role="document">
+                            <h3 id="submit-warning-title" className="modal-title">
                                 Review Flagged Questions?
                             </h3>
-                            <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
+                            <p className="modal-text">
                                 You have {pendingSubmitStats.flagged} flagged question{pendingSubmitStats.flagged === 1 ? '' : 's'}.
                             </p>
-                            <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
-                                You have answered {pendingSubmitStats.answered} of {available.length} questions so far.
+                            <p className="modal-text">
+                                You have answered {pendingSubmitStats.answered} of {pendingSubmitStats.total} questions so far.
                             </p>
                             {pendingSubmitStats.unanswered > 0 && (
-                                <p style={{ margin: '12px 0', color: '#cbd5f5', lineHeight: 1.6 }}>
+                                <p className="modal-text">
                                     There {pendingSubmitStats.unanswered === 1 ? 'is' : 'are'} also {pendingSubmitStats.unanswered} unanswered question{pendingSubmitStats.unanswered === 1 ? '' : 's'} remaining.
                                 </p>
                             )}
-                            <p style={{ margin: '12px 0', color: '#94a3b8', lineHeight: 1.6 }}>
+                            <p className="modal-text muted">
                                 You can jump back to the first flagged question to review or submit now and view the full breakdown in the results screen.
                             </p>
-                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+                            <div className="modal-actions">
                                 <button
                                     onClick={reviewFlaggedQuestions}
-                                    style={{
-                                        flex: '1 1 150px',
-                                        background: 'transparent',
-                                        color: '#60a5fa',
-                                        border: '2px solid rgba(96,165,250,0.6)',
-                                        padding: '12px 18px',
-                                        borderRadius: 10,
-                                        fontSize: 15,
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="modal-button secondary"
+                                    type="button"
                                 >
                                     Review Flagged Questions
                                 </button>
                                 <button
                                     onClick={finalizeExamSubmission}
-                                    style={{
-                                        flex: '1 1 150px',
-                                        background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(74,222,128,0.9))',
-                                        color: '#fff',
-                                        border: 'none',
-                                        padding: '12px 18px',
-                                        borderRadius: 10,
-                                        fontSize: 15,
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        boxShadow: '0 15px 35px rgba(34,197,94,0.35)'
-                                    }}
+                                    className="modal-button primary"
+                                    type="button"
                                 >
                                     Submit Anyway
                                 </button>
@@ -1516,7 +1386,7 @@ Do you want to finish the practice session anyway?`);
                             {mode === 'exam' && (
                                 <button 
                                     className="submit-btn" 
-                                    onClick={submitExam}
+                                    onClick={() => submitExam()}
                                     style={{ 
                                         background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(74,222,128,0.9))',
                                         fontWeight: 600
