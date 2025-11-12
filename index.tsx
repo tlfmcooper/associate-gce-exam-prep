@@ -834,67 +834,38 @@ Do you want to finish the practice session anyway?`);
                 const breakdownEntries = Object.entries(practiceSummary.breakdown).sort((a, b) => a[0].localeCompare(b[0]));
 
                 return (
-                    <div className="practice-results-container" style={{ minHeight: '100vh', padding: '40px 20px', background: 'linear-gradient(to bottom right, #1e293b, #1e40af, #1e293b)' }}>
-                        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-                            <div style={{
-                                background: 'rgba(51,65,85,0.95)',
-                                borderRadius: 16,
-                                padding: 40,
-                                marginBottom: 32,
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            }}>
-                                <h1 style={{ margin: 0, fontSize: 32, color: '#f9fafb', textAlign: 'center' }}>Practice Session Summary</h1>
-                                <div style={{
-                                    marginTop: 24,
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 24,
-                                    justifyContent: 'center',
-                                    color: '#f9fafb',
-                                }}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 48, fontWeight: 800, color: '#60a5fa' }}>{percentage}%</div>
-                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Overall Accuracy</div>
+                    <div className="practice-results-container">
+                        <div className="practice-results-inner">
+                            <section className="practice-results-header">
+                                <h1 className="practice-results-title">Practice Session Summary</h1>
+                                <div className="practice-results-stats">
+                                    <div className="practice-stat-card">
+                                        <div className="practice-stat-value primary">{percentage}%</div>
+                                        <div className="practice-stat-label">Overall Accuracy</div>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{practiceSummary.correct} / {practiceSummary.total}</div>
-                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Correct Answers</div>
+                                    <div className="practice-stat-card">
+                                        <div className="practice-stat-value">{practiceSummary.correct} / {practiceSummary.total}</div>
+                                        <div className="practice-stat-label">Correct Answers</div>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{practiceSummary.answered} / {practiceSummary.total}</div>
-                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Answered ({answeredPercentage}%)</div>
+                                    <div className="practice-stat-card">
+                                        <div className="practice-stat-value">{practiceSummary.answered} / {practiceSummary.total}</div>
+                                        <div className="practice-stat-label">Answered ({answeredPercentage}%)</div>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: 32, fontWeight: 700 }}>{timeSpentFormatted}</div>
-                                        <div style={{ fontSize: 16, color: '#9ca3af' }}>Time Spent</div>
+                                    <div className="practice-stat-card">
+                                        <div className="practice-stat-value">{timeSpentFormatted}</div>
+                                        <div className="practice-stat-label">Time Spent</div>
                                     </div>
                                 </div>
 
-                                <div style={{
-                                    marginTop: 32,
-                                    display: 'flex',
-                                    gap: 12,
-                                    justifyContent: 'center',
-                                    flexWrap: 'wrap',
-                                }}>
+                                <div className="practice-results-actions">
                                     <button
                                         onClick={() => {
                                             setMode('practice');
                                             setCurrentIndex(0);
                                             if (typeof window !== 'undefined') setShowSidebar(window.innerWidth > 900);
                                         }}
-                                        style={{
-                                            padding: '12px 24px',
-                                            borderRadius: 8,
-                                            border: 'none',
-                                            background: 'rgba(59,130,246,0.25)',
-                                            color: '#bfdbfe',
-                                            fontSize: 16,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                        }}
+                                        className="practice-action-button secondary"
+                                        type="button"
                                     >
                                         Review Questions
                                     </button>
@@ -910,16 +881,8 @@ Do you want to finish the practice session anyway?`);
                                             setCurrentIndex(0);
                                             setMode('practiceConfig');
                                         }}
-                                        style={{
-                                            padding: '12px 24px',
-                                            borderRadius: 8,
-                                            border: 'none',
-                                            background: '#1a73e8',
-                                            color: '#fff',
-                                            fontSize: 16,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                        }}
+                                        className="practice-action-button primary"
+                                        type="button"
                                     >
                                         Start New Practice Set →
                                     </button>
@@ -934,59 +897,45 @@ Do you want to finish the practice session anyway?`);
                                             setMode('landing');
                                             setShowSidebar(false);
                                         }}
-                                        style={{
-                                            padding: '12px 24px',
-                                            borderRadius: 8,
-                                            border: '2px solid rgba(255,255,255,0.16)',
-                                            background: 'transparent',
-                                            color: '#fff',
-                                            fontSize: 16,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                        }}
+                                        className="practice-action-button tertiary"
+                                        type="button"
                                     >
                                         Back to Home
                                     </button>
                                 </div>
-                            </div>
+                            </section>
 
-                            <div style={{
-                                background: 'rgba(51,65,85,0.95)',
-                                borderRadius: 16,
-                                padding: 32,
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                            }}>
-                                <h2 style={{ marginTop: 0, marginBottom: 24, color: '#f9fafb', fontSize: 22 }}>Performance by Domain</h2>
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e5e7eb' }}>
+                            <section className="practice-results-breakdown">
+                                <h2 className="practice-breakdown-title">Performance by Domain</h2>
+                                <div className="practice-table-wrapper">
+                                    <table className="practice-table">
                                         <thead>
-                                            <tr style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                                <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600 }}>Domain</th>
-                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Correct</th>
-                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Answered</th>
-                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Total</th>
-                                                <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: 600 }}>Accuracy</th>
+                                            <tr>
+                                                <th className="practice-table-header left">Domain</th>
+                                                <th className="practice-table-header">Correct</th>
+                                                <th className="practice-table-header">Answered</th>
+                                                <th className="practice-table-header">Total</th>
+                                                <th className="practice-table-header">Accuracy</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {breakdownEntries.map(([domain, stats]) => {
                                                 const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-                                                const rowColor = stats.correct === stats.total ? 'rgba(52,211,153,0.18)' : 'transparent';
+                                                const isFullCorrect = stats.correct === stats.total;
                                                 return (
-                                                    <tr key={domain} style={{ background: rowColor }}>
-                                                        <td style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{domain}</td>
-                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.correct}</td>
-                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.answered}</td>
-                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{stats.total}</td>
-                                                        <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', color: accuracy >= 70 ? '#34d399' : '#f87171' }}>{accuracy}%</td>
+                                                    <tr key={domain} className={isFullCorrect ? 'full-correct' : ''}>
+                                                        <td className="practice-table-cell left">{domain}</td>
+                                                        <td className="practice-table-cell">{stats.correct}</td>
+                                                        <td className="practice-table-cell">{stats.answered}</td>
+                                                        <td className="practice-table-cell">{stats.total}</td>
+                                                        <td className={`practice-table-cell ${accuracy >= 70 ? 'high-accuracy' : 'low-accuracy'}`}>{accuracy}%</td>
                                                     </tr>
                                                 );
                                             })}
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                            </section>
                         </div>
                     </div>
                 );
