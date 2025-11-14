@@ -1299,7 +1299,7 @@ Do you want to finish the practice session anyway?`);
                 )}
                 {/* top banner only when not on landing */}
                 <div className="exam-banner fixed-banner">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                    <div className="exam-banner__row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <div style={{ fontWeight: 700 }}>
                                 {mode === 'exam'
@@ -1365,6 +1365,17 @@ Do you want to finish the practice session anyway?`);
                             )}
                         </div>
                     </div>
+                    {isMobile && current && (
+                        <div className="mobile-domain-row">
+                            <div className="mobile-domain-row__top">
+                                <span className="domain-badge mobile">{current.domain}</span>
+                                <span className="mobile-question-pill">Question {currentIndex + 1} / {available.length}</span>
+                            </div>
+                            {current.subdomain && (
+                                <span className="mobile-domain-row__subdomain">{current.subdomain}</span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar: on mobile it's an overlay (controlled with .open) and on desktop it's fixed */}
@@ -1447,10 +1458,10 @@ Do you want to finish the practice session anyway?`);
                         {current ? (
                             <div>
                                 {/* Domain and subdomain badges */}
-                                <div style={{ marginBottom: 16 }}>
+                                <div className="question-domain-block">
                                     <span className="domain-badge">{current.domain}</span>
                                     {current.subdomain && (
-                                        <div style={{ marginTop: 8, fontSize: 14, color: '#9ca3af' }}>
+                                        <div className="subdomain-label">
                                             {current.subdomain}
                                         </div>
                                     )}

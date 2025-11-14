@@ -135,8 +135,14 @@ body{
   font-weight: 400;
   letter-spacing: -0.01em;
 }
-.app-layout{display:flex;gap:20px;box-sizing:border-box;background:transparent}
-.app-layout{display:flex;box-sizing:border-box;background:transparent;min-height:100vh;}
+.app-layout{
+  display:flex;
+  gap:20px;
+  box-sizing:border-box;
+  background:transparent;
+  min-height:100vh;
+  padding-top:calc(var(--banner-height) + 24px);
+}
 .sidebar{
   box-sizing:border-box;
   width:var(--sidebar-width);
@@ -425,7 +431,10 @@ body{
 
 /* Domain badge - enhanced design */
 .domain-badge{
-  display:inline-block;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
   padding:8px 18px;
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
   color: var(--color-text-inverse);
@@ -434,6 +443,65 @@ body{
   font-weight:700;
   font-family: var(--font-body);
   box-shadow: 0 4px 12px rgba(122, 162, 247, 0.35);
+  text-align:center;
+  line-height:1.4;
+  max-width:100%;
+  word-break:break-word;
+}
+
+.domain-badge.mobile{
+  font-size:13px;
+  padding:6px 14px;
+  align-self:center;
+}
+
+.question-domain-block{
+  margin-bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.subdomain-label{
+  font-size:14px;
+  color:#9ca3af;
+}
+
+.mobile-domain-row{
+  display:none;
+  width:100%;
+  margin-top:8px;
+  padding:10px 14px;
+  border-radius:14px;
+  background:rgba(15,23,42,0.6);
+  border:1px solid rgba(96,165,250,0.2);
+  box-shadow:0 6px 18px rgba(15,23,42,0.4);
+}
+
+.mobile-domain-row__top{
+  width:100%;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.mobile-domain-row__subdomain{
+  font-size:13px;
+  color: var(--color-text-secondary);
+  text-align:center;
+}
+
+.mobile-question-pill{
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(191,219,254,0.4);
+  background:rgba(30,58,138,0.65);
+  color: var(--color-text-primary);
+  font-size:12px;
+  font-weight:600;
+  font-family: var(--font-body);
 }
 .summary-area{padding:20px;background:#fff;border-radius:8px}
 .score-box{width:160px;text-align:center;padding:12px;border-radius:8px;background:#f1f4f8;border:1px solid #e6eefc}
@@ -469,7 +537,7 @@ body{
   animation: slideInLeft 500ms var(--transition-base) backwards;
 }
 
-.exam-banner > div{
+.exam-banner__row{
   width:100%;
   display:flex;
   justify-content:space-between;
@@ -520,6 +588,17 @@ body{
 @media (max-width:700px){
   .exam-banner{padding:12px;font-size:14px}
   .hero-card{padding:16px}
+  .question-domain-block{display:none;}
+  .subdomain-label{text-align:center;}
+  .mobile-domain-row{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    align-items:center;
+  }
+  .main-area{
+    margin-top:120px !important;
+  }
 }
 
 /* (header-controls uses the same positioning, keep styles in .header-controls) */
@@ -532,8 +611,6 @@ body{
 }
 
 
-/* Make sure the fixed banner doesn't cover content: give the app layout a top padding matching banner height */
-.app-layout{padding-top:80px}
 .main-area{padding:20px;transition:margin-left .18s ease}
 
 /* Landing / hero: Enhanced with Playfair Display and orchestrated animations */
@@ -617,7 +694,7 @@ body{
 @media (max-width:900px){
   .exam-banner{padding:10px 12px}
   .exam-banner .controls{justify-content:center}
-  .app-layout{padding-top:88px}
+  .app-layout{padding-top:calc(var(--banner-height) + 48px)}
   /* small screens: show a centered modal dialog instead of a full-page panel */
   .sidebar{
     display:block; /* rendered but visually hidden until opened */
