@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "predeploy": "npm run build && cpx ./dist/index.html ./dist/404.html",
-    "deploy": "gh-pages -d dist -e associate-gce-exam-prep",
+    "create-404": "node scripts/create-404.mjs",
+    "predeploy": "npm run build && npm run create-404",
+    "deploy": "gh-pages -d dist -b main -r https://github.com/tlfmcooper/github.io.git -e associate-gce-exam-prep --add",
     "preview": "vite preview"
   },
   "dependencies": {
