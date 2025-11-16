@@ -1,0 +1,50 @@
+name: Deploy associate-gce-exam-prep
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run predeploy
+
+      - name: Checkout github.io repository
+        uses: actions/checkout@v4
+        with:
+          repository: tlfmcooper/github.io
+          token: ${{ secrets.GH_PAGES_DEPLOY_TOKEN }}
+          path: github.io
+
+      - name: Sync build output into github.io repo
+        run: |
+          mkdir -p github.io/associate-gce-exam-prep
+          rsync -av --delete dist/ github.io/associate-gce-exam-prep/
+
+      - name: Commit and push changes
+        run: |
+          cd github.io
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add associate-gce-exam-prep
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "Deploy associate-gce-exam-prep ($(date -u '+%Y-%m-%d %H:%M:%S'))"
+            git push origin main
+          fi
