@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://tlfmcooper.github.io/associate-gce-exam-prep",
+  "homepage": "https://www.alikone.dev/associate-gce-exam-prep",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
