@@ -613,17 +613,9 @@ Do you want to finish the practice session anyway?`);
                         }}
                     >
                         <div style={{ width: '100%', textAlign: 'center', padding: '80px 24px' }}>
-                            {/* Cloud graphic */}
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }} aria-hidden>
-                                <svg width="72" height="48" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <linearGradient id="g1" x1="0" x2="1">
-                                            <stop offset="0" stopColor="#fff" stopOpacity="0.95" />
-                                            <stop offset="1" stopColor="#e6f0ff" stopOpacity="0.9" />
-                                        </linearGradient>
-                                    </defs>
-                                    <path d="M20 30c-6 0-10-5-10-10 0-5 4-10 10-10 2 0 4 0 6 1 3-5 9-6 15-3 5 3 7 9 5 14-1 4-5 8-11 8H20z" fill="url(#g1)" />
-                                </svg>
+                            {/* App logo */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                                <img src="/associate-gce-exam-prep/logo.svg" alt="GCP ACE Prep" style={{ height: 72, width: 'auto' }} />
                             </div>
 
                             <h1 style={{ fontSize: 56, margin: '0 0 8px', fontWeight: 800, lineHeight: 1.05 }}>Google Cloud<br />Associate Engineer</h1>
