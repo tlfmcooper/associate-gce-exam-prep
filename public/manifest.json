@@ -1,0 +1,35 @@
+{
+  "name": "GCP Associate Cloud Engineer Practice Exam",
+  "short_name": "GCP ACE",
+  "description": "Practice exam for the Google Cloud Associate Cloud Engineer certification with AI-powered explanations.",
+  "start_url": "/associate-gce-exam-prep/",
+  "scope": "/associate-gce-exam-prep/",
+  "display": "standalone",
+  "background_color": "#1a1b26",
+  "theme_color": "#7aa2f7",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Practice Exam",
+      "short_name": "Practice",
+      "description": "Jump straight into a practice session",
+      "url": "/associate-gce-exam-prep/",
+      "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
